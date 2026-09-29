@@ -1,1 +1,96 @@
-$grill-with-docs I want to develop a Python program that will read in verbal autopsy records and classify the cause of death based upon the verbal autopsy indicators in the input file. Information on the input is in the attached files. This account is not allowed access to the actual data. The analysis program we develop will ultimately run under the analysis account and will have access to the actual data. Disregard any work I have previously done on this topic.
+$grill-with-docs I want to develop a Python program that will read in verbal autopsy records and classify the cause of death based upon the verbal autopsy indicators in the input file. 
+Information on the input is in the attached files. This account is not allowed access to the actual data. 
+The analysis program we develop will ultimately run under the analysis account and will have access to the actual data. 
+Stop at the end of the grilling session, do not start developing the program yet.
+Disregard any work I have previously done on this topic.
+
+❓ Q1 — Intended use: What decisions should the cause-of-death results support?
+➡️ My recommendation is population-level mortality research, with record-level estimates available for research review in the analysis account. Please flag if you also intend clinical, legal, or death-certification use.
+
+Q2 We are going to use a simple machine learning approach to try and replicate the first cause assigned by InterVA5 and documented in the file AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2
+Q3 All computations must run in Python, I can make use of appropriate libraries though.
+
+❓ Q4 — Research claim: Is the initial objective an experiment on held-out records from 2000–2024, or a classifier intended to predict assignments for later, unlabelled records?
+➡️ Start with a retrospective replication experiment. The intended generalisation determines how we should split training and evaluation records.
+❓ Q5 — Predictors: Should we use only the 353 documented harmonised indicators, or also consider additional information?
+➡️ Use those 353 indicators initially. Use IIntID only for linking records, and questionnaire/date metadata for evaluation. Exclude all algorithm outputs from predictors and omit the five COVID extras, which the documentation says were unused in the original cause estimation.
+❓ Q6 — Population: Should the experiment cover all documented age groups, including probable stillbirths where a usable target exists, or a restricted population such as adults?
+➡️ Include all groups, with separate performance reporting by age group and for probable stillbirths.
+❓ Q7 — Undetermined assignments: If InterVA5 explicitly recorded an undetermined first cause, should the model learn to reproduce that outcome?
+➡️ Yes: retain a documented undetermined assignment as a class. Missing target labels are different: exclude them from supervised training and evaluation, and count those exclusions. The actual codes remain for private verification.
+❓ Q8 — “Simple” machine learning: Do you want one easily explained learner, or a small comparison of standard learners?
+➡️ Compare two standard learners against a baseline that always predicts the most frequent training label, with limited tuning. We can choose the learners once the predictor scope is settled.
+❓ Q9 — Success priority: Should selecting the best model prioritise overall agreement, or give uncommon causes equal influence even when that reduces overall agreement?
+➡️ Make overall exact-match agreement primary, while requiring macro-F1 and per-cause recall to expose poor performance on uncommon causes. Metric definitions
+Q4, Q5 Yes
+Q6 Adults 18+ only
+Q7 Yes
+Q8 Yes
+Q9 Yes
+❓ Q10 — Adult eligibility: May we use Age_in_years >= 18 from the deaths table, subject to private confirmation that it means completed age at death?
+➡️ Yes. Exclude and count missing or invalid ages. The indicator bands cannot establish this cutoff because one spans ages 15–49.
+❓ Q11 — Learners: Shall we compare regularised multinomial logistic regression and a random forest, alongside the agreed most-frequent-label baseline?
+➡️ Yes: this compares a simple additive classifier with one that can capture interactions between indicators. Both have standard Python implementations: logistic regression, random forest.
+❓ Q12 — Validation: Shall we reserve 20% of eligible records as an untouched test set, preserving cause proportions where feasible, and use the remaining 80% for training and limited cross-validation?
+➡️ Yes. Use the same split for every model; select settings using the training portion only. Rare-class feasibility needs a separate rule once this design is accepted.
+❓ Q13 — Indicator encoding: Shall we preserve y, n and - as three distinct categories, and reject undeclared values rather than guessing their meaning?
+➡️ Yes. Treat unknown/inapplicable as its own category. Blank values need an explicitly reviewed mapping before acceptance.
+❓ Q14 — Record linkage: Should duplicate identifiers or conflicting target records stop the run?
+➡️ Yes. Require an unambiguous one-to-one link through IIntID; exclude and count unmatched records. Preserve documented target labels without automatically merging causes.
+❓ Q15 — Input interface: Is a command-line program accepting two UTF-8 CSV files, with separate validate and benchmark commands, suitable?
+➡️ Yes, as the initial software interface. This proposes an interchange format; it does not assume the private files already use it.
+❓ Q16 — Outputs: Are aggregate benchmark results sufficient, or do you also need saved individual predictions and fitted models in the analysis account?
+➡️ Start with aggregate metrics, per-cause results, confusion matrices, exclusion counts, and a report recording configuration and library versions. These support the agreed retrospective experiment.
+❓ Q17 — Synthetic testing boundary: May development tests fit disposable toy models and check their predictions using exclusively invented records?
+➡️ I recommend allowing this narrowly defined testing. It lets us verify that training and evaluation work before you run the program privately.
+Q10, Q11, Q12 Yes
+Q13 Yes, - means missing/inapplicable
+Q14, Q15 Yes
+Q16 Keep the output simple and easily interpretable
+Q17 Yes, you can use synthetic data
+❓ Q18 — Rare causes: If a cause has too few records for the agreed test split and cross-validation, should the program stop or automatically exclude/merge that cause?
+➡️ Stop with a clear explanation and counts. Preserve the original labels and population definition. This may require you to revise the experiment after private review, but avoids silently changing what we evaluate.
+❓ Q19 — Tuning budget: Shall we use three-fold cross-validation within the training portion, with this small, fixed comparison?
+- Logistic regression: three regularisation strengths (C = 0.1, 1, 10).
+- Random forest: 200 trees, comparing minimum leaf sizes of 1 and 5.
+- Fixed random seed; no class weighting or resampling.
+➡️ Yes. Select settings and the preferred learner using training cross-validation, then evaluate all three models on the untouched test set. This follows the separation between tuning and final evaluation described in scikit-learn’s guidance.
+❓ Q20 — What counts as completion: Is this an exploratory experiment that reports its findings even if agreement is disappointing, rather than requiring a particular accuracy threshold?
+➡️ Yes. Completion means tested software, a correctly executed evaluation and an understandable report. Strong replication is a possible finding, not a promised result.
+
+Q18 Exclude the cause
+Q19 Yes
+Q20 Yes
+
+❓ Q21 — Final exclusion rule and design confirmation: I propose excluding causes with fewer than five eligible labelled adult records, before splitting.
+➡️ This supports the 80/20 split and three-fold cross-validation. Require at least two remaining causes and verify class coverage. Five is a feasibility minimum; per-cause results may still be uncertain.
+
+Q21 yes, and conclude the grilling
+
+Commit all changes in the repository
+
+$to-spec adr 0001 & 0002, use a local issue tracker in .md files under docs
+
+**Does testing through the public validate and benchmark commands, using invented CSV fixtures and checking diagnostics and reports, match your expectations?**
+
+Yes, use this command boundary
+
+**Do you want to keep the default triage labels for GitHub Issues in AHRIORG/AHRI-VA-Example: needs-triage, needs-info, ready-for-agent, ready-for-human and wontfix?**
+
+Yes, keep the defaults (recommended)
+
+$to-tickets Adult InterVA5 first-cause replication benchmark, add a HITL ticket to verify input file format in the private analysis account
+
+Ticket 1 should include the creation of a wizard using the [$wizard](/Users/kobush/.agents/skills/wizard/SKILL.md) skill to gather evidence on the input file/s format and needed characteristics, which I will then transfer to this repository for use in subsequent tickets.
+
+Approve tickets
+
+Published all five tickets:
+1. [HITL input-evidence wizard](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md)
+2. [Input validation and adult eligibility](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md)
+3. [Baseline and partition checks](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md)
+4. [Logistic-regression selection](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/04-logistic-regression-selection.md)
+5. [Random forest and complete report](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md)
+Dependencies follow 1 → 2 → 3 → 4 → 5. Ticket 1 requires your reviewed evidence handoff before completion.
+
+
