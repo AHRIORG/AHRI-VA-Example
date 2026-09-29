@@ -39,4 +39,6 @@ This is a human-in-the-loop ticket with agent-authored tooling. The user authori
 
 The user also requested an offline transfer archive and confirmed the destination is the same Mac with Bash and Python 3.11+ already available. The [bundle builder](../../../../scripts/build_transfer_bundle.py) packages an explicit allowlist of source, documentation and invented tests with checksums; no runtime packages or network access are needed.
 
+Code review compared this work with `bc71f02335e1326b59d16d1d0f775c7fa08e4e61` on separate standards and spec axes. The standards review found duplicated categorical choices (P3 heuristic), now shared. The spec review found detailed blocker messages bypassed section opt-outs (P2), now gated by the same release choices and covered by an invented-command regression test. No actual-input conclusions were drawn.
+
 **Human handoff pending:** no private evidence has been collected or transferred. After private execution and review, the user may transfer `../reviewed-input-evidence.md`; add its link here only when it exists and has been approved. Leave this ticket unresolved and Ticket 02 blocked until the handoff and necessary input-contract decisions are complete. Script creation and invented-fixture tests establish no actual-input facts.

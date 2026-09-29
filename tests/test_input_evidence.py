@@ -175,6 +175,9 @@ class EvidenceCommands(unittest.TestCase):
         self.assertNotIn(self.temp.name, result.stdout + result.stderr)
         self.assertFalse((self.work / "candidate-summary.md").exists())
         self.assertEqual(self.load("observations.json")["inputs"][0]["status"], "unreadable_or_malformed")
+        review = self.load("review.json")
+        review["release_sections"]["inventory"] = True
+        self.save("review.json", review)
         self.run_command("summary")
         summary = (self.work / "candidate-summary.md").read_text()
         self.assertNotIn("PRIVATE-", summary)
@@ -254,6 +257,38 @@ class EvidenceCommands(unittest.TestCase):
         result = self.run_command("inspect", expected=2)
         self.assertNotIn("PRIVATE-CONFIG", result.stdout + result.stderr)
         self.assertNotIn("Traceback", result.stdout + result.stderr)
+
+    def test_withheld_sections_also_withhold_derived_blocker_details(self):
+        self.prepare(deaths=[
+            {"IIntID": "SAME", "Age_in_years": "18", "cause1_InterVA": "Invented A"},
+            {"IIntID": "SAME", "Age_in_years": "18", "cause1_InterVA": "Invented B"},
+        ], indicators=[{"IIntID": "SAME", "i004a": "PRIVATE-UNEXPECTED"}])
+        self.run_command("inspect")
+        self.run_command("summary")
+        summary = (self.work / "candidate-summary.md").read_text()
+        for withheld in ("duplicate_identifier", "conflicting_target", "indicator_unexpected",
+                         "unambiguous linkage", "Input 1", "Input 2"):
+            self.assertNotIn(withheld, summary)
+        self.assertIn("evidence sections were withheld", summary)
+        review = self.load("review.json")
+        review["release_sections"]["characteristics"] = True
+        self.save("review.json", review)
+        self.run_command("summary")
+        summary = (self.work / "candidate-summary.md").read_text()
+        self.assertIn("duplicate_identifier_groups", summary)
+        self.assertIn("conflicting_target_identifiers", summary)
+        self.assertIn("indicator_unexpected", summary)
+        config = self.load("inventory.json")
+        Path(config["files"][0]["path"]).write_text("IIntID,cause1_InterVA\nSAME,Invented A\n")
+        config["files"][1]["format"] = "unknown"
+        self.save("inventory.json", config)
+        self.run_command("inspect")
+        review["release_sections"]["characteristics"] = False
+        self.save("review.json", review)
+        self.run_command("summary")
+        summary = (self.work / "candidate-summary.md").read_text()
+        self.assertNotIn("required schema fields are missing", summary)
+        self.assertNotIn("inspection is unsupported or incomplete", summary)
 
 
 if __name__ == "__main__":

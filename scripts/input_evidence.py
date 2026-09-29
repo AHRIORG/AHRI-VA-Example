@@ -34,6 +34,11 @@ COUNT_FIELDS = (
     "indicator_y", "indicator_n", "indicator_missing_inapplicable", "indicator_blank", "indicator_unexpected",
 )
 RELEASE_SECTIONS = ("inventory", "serialization", "schema", "characteristics")
+ROLES = ("deaths", "indicators", "other", "unknown")
+FORMATS = ("delimited", "xlsx", "stata", "spss", "sas", "parquet", "json", "other", "unknown")
+ORGANISATIONS = ("single_table", "multiple_tables", "multiple_sheets", "unknown")
+CONTAINERS = ("no_recognized_container", "gzip", "zip", "bzip2", "xz", "zstd")
+INDICATOR_CATEGORIES = {"y": "y", "n": "n", "-": "missing_inapplicable", "": "blank"}
 
 
 class EvidenceError(Exception):
@@ -82,11 +87,11 @@ def inventory_config(work: Path) -> dict[str, Any]:
             raise EvidenceError("Each inventory input needs a private path.")
         if not Path(entry["path"]).is_absolute():
             raise EvidenceError("Input paths must be absolute and remain in the analysis account.")
-        if entry.get("role") not in ("deaths", "indicators", "other", "unknown"):
+        if entry.get("role") not in ROLES:
             raise EvidenceError("Choose deaths, indicators, other or unknown for each input role.")
-        if entry.get("format") not in ("delimited", "xlsx", "stata", "spss", "sas", "parquet", "json", "other", "unknown"):
+        if entry.get("format") not in FORMATS:
             raise EvidenceError("Choose a documented inventory format option.")
-        if entry.get("table_organisation") not in ("single_table", "multiple_tables", "multiple_sheets", "unknown"):
+        if entry.get("table_organisation") not in ORGANISATIONS:
             raise EvidenceError("Choose a documented table organisation option.")
     tokens = config.get("missing_tokens")
     if not isinstance(tokens, dict):
@@ -200,7 +205,7 @@ def inspect_delimited(entry: dict[str, Any], config: dict[str, Any], container: 
             if role == "indicators":
                 for field in SCHEMA["predictors"]:
                     if field in row:
-                        category = {"y": "y", "n": "n", "-": "missing_inapplicable", "": "blank"}.get(row[field], "unexpected")
+                        category = INDICATOR_CATEGORIES.get(row[field], "unexpected")
                         counts[f"indicator_{category}"] += 1
     counts["duplicate_identifier_groups"] = sum(count > 1 for count in identifiers.values())
     counts["duplicate_identifier_rows"] = sum(count for count in identifiers.values() if count > 1)
@@ -351,14 +356,12 @@ def summary(work: Path) -> None:
         status = release_choice(item["status"], ("observed", "unsupported", "unreadable_or_malformed", "serialization_unresolved"))
         if any(sections.values()):
             lines.extend([f"### Input {index}", "", f"Inspection status: {status}.", ""])
-        if status != "observed":
+        if status != "observed" and (sections["inventory"] or sections["serialization"]):
             blockers.append(f"Input {index}: inspection is unsupported or incomplete; specify preparation and reinspection.")
         if sections["inventory"]:
             for key, choices in (
-                ("role", ("deaths", "indicators", "other", "unknown")),
-                ("declared_format", ("delimited", "xlsx", "stata", "spss", "sas", "parquet", "json", "other", "unknown")),
-                ("declared_organisation", ("single_table", "multiple_tables", "multiple_sheets", "unknown")),
-                ("observed_container", ("no_recognized_container", "gzip", "zip", "bzip2", "xz", "zstd")),
+                ("role", ROLES), ("declared_format", FORMATS),
+                ("declared_organisation", ORGANISATIONS), ("observed_container", CONTAINERS),
             ):
                 if key in item:
                     lines.append(f"- {key}: {release_choice(item[key], choices)}")
@@ -385,15 +388,16 @@ def summary(work: Path) -> None:
         if sections["characteristics"]:
             lines.extend(f"- {key}: {release_number(counts[key])}" for key in COUNT_FIELDS)
             lines.append("")
-        if schema["missing_required_fields"]:
+        if sections["schema"] and schema["missing_required_fields"]:
             blockers.append(f"Input {index}: required schema fields are missing.")
-        if counts["rows"] == 0:
+        if sections["characteristics"] and counts["rows"] == 0:
             blockers.append(f"Input {index}: no records were observed.")
         for key in ("blank_identifiers", "declared_missing_identifiers", "duplicate_identifier_groups",
                     "conflicting_target_identifiers", "indicator_unexpected"):
-            if counts.get(key):
+            if sections["characteristics"] and counts.get(key):
                 blockers.append(f"Input {index}: resolve {key}; no automatic repair was performed.")
-        if counts["indicator_blank"] and config["indicator_blank_mapping"] != "missing_inapplicable":
+        if (sections["characteristics"] and counts["indicator_blank"]
+                and config["indicator_blank_mapping"] != "missing_inapplicable"):
             blockers.append(f"Input {index}: indicator blanks need an explicit preparation decision.")
     linkage = observed["linkage"]
     if sections["characteristics"]:
@@ -409,11 +413,11 @@ def summary(work: Path) -> None:
         else:
             lines.append("Linkage unresolved: requires exactly one successfully inspected table per role with IIntID.")
         lines.append("")
-    if linkage["status"] != "observed" or not linkage.get("one_to_one"):
+    if sections["characteristics"] and (linkage["status"] != "observed" or not linkage.get("one_to_one")):
         blockers.append("Establish unambiguous linkage after any explicit preparation.")
-    if any(config["missing_tokens"][field] is None for field in ("identifier", "age", "target")):
+    if sections["characteristics"] and any(config["missing_tokens"][field] is None for field in ("identifier", "age", "target")):
         blockers.append("Missing-token conventions remain unresolved in the inspection configuration.")
-    if config["indicator_blank_mapping"] == "unresolved":
+    if sections["characteristics"] and config["indicator_blank_mapping"] == "unresolved":
         blockers.append("Indicator blank handling remains unresolved.")
     if not all(sections.values()):
         blockers.append("One or more evidence sections were withheld; provide reviewed evidence needed by Ticket 02.")

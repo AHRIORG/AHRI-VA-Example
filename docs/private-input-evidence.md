@@ -266,7 +266,9 @@ The `release_sections` object separately selects `inventory`, `serialization`,
 `schema`, `characteristics`. Each defaults to `false`. After local review, set
 only the sections you intend to include to `true` and run `summary`. The summary
 contains selected categorical facts/aggregates, approved statements, documentary
-expectations and explicit blockers. Changed inventory requires reinspection.
+expectations and explicit blockers. Withheld sections also withhold their
+detailed blocker messages; only a generic missing-evidence reminder remains.
+Changed inventory requires reinspection.
 Sources can change outside this tool: confirm they stayed unchanged during
 inspection and review; start another run after any source change.
 
