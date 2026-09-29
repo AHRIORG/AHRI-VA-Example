@@ -3,7 +3,7 @@
 `ahri-va validate` checks input integrity, exact one-to-one linkage and
 adult/target eligibility, then applies Ticket 03's rare-class and partition
 checks without fitting models. An empty eligible population now fails benchmark
-feasibility. The [baseline guide](benchmark.md) describes those checks and the
+feasibility. The [benchmark guide](benchmark.md) describes those checks and the
 `benchmark` command. Both commands share the input rules below.
 
 ## Install and try invented records
@@ -44,8 +44,8 @@ To build an offline-installable wheel after installing the build dependencies:
 .venv/bin/python -m pip wheel --no-build-isolation --no-deps --no-index . --wheel-dir dist
 ```
 
-The resulting `dist/ahri_va-0.3.0-py3-none-any.whl` contains the predictor
-allowlist. Ticket 03 also requires the pinned runtime dependencies on the
+The resulting `dist/ahri_va-0.5.0-py3-none-any.whl` contains the predictor
+allowlist. The benchmark also requires the pinned runtime dependencies on the
 destination; follow the [offline transfer instructions](benchmark.md#offline-transfer)
 to collect compatible wheels. Transfer the configuration template and guides
 separately as needed. The

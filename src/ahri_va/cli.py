@@ -40,7 +40,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     commands = parser.add_subparsers(dest="command", required=True)
     for command, help_text in (
         ("validate", "Check inputs, adult eligibility, population and partitions without fitting."),
-        ("benchmark", "Print an intermediate baseline/logistic-regression Markdown comparison."),
+        ("benchmark", "Print the three-model replication benchmark Markdown report."),
     ):
         subcommand = commands.add_parser(command, help=help_text)
         subcommand.add_argument("--deaths", type=Path, required=True)
@@ -65,13 +65,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         summary["benchmark_feasibility"] = "feasible"
         if args.command == "benchmark":
             from ahri_va.baseline import evaluate_baseline
-            from ahri_va.logistic import evaluate_logistic
+            from ahri_va.learners import evaluate_learners
             from ahri_va.report import comparison_report
 
             summary.pop("models_fitted")
             result = evaluate_baseline(population, plan)
-            logistic = evaluate_logistic(population, plan)
-            report = comparison_report(eligible, population, plan, result, logistic)
+            learners = evaluate_learners(population, plan)
+            report = comparison_report(eligible, population, plan, result, learners)
     except ValidationError as error:
         failure: dict[str, object] = {"status": "failed", "errors": str(error).splitlines()}
         if summary:

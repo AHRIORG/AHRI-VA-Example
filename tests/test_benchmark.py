@@ -30,7 +30,8 @@ def _encoded_row_numbers(features):
 
 
 def _selection_section(report):
-    return report.split("## Logistic-regression selection", 1)[1].split("## Per-cause", 1)[0]
+    selected = next(line for line in report.splitlines() if line.startswith("Training-selected learner:"))
+    return selected + report.split("## Development selection", 1)[1].split("## Per-cause", 1)[0]
 
 
 class BenchmarkCommand(unittest.TestCase):
@@ -143,8 +144,8 @@ class BenchmarkCommand(unittest.TestCase):
         before = {path.name: path.read_bytes() for path in self.work.iterdir()}
         report = self.command("benchmark")
         self.assertEqual(report, self.command("benchmark"))
-        self.assertIn("Intermediate comparison", report)
-        self.assertIn("Ticket 05", report)
+        self.assertIn("# Adult InterVA5 replication benchmark", report)
+        self.assertIn("Training-selected learner:", report)
         self.assertIn("eligible labelled adults in retained classes", report)
         self.assertIn("InterVA5 assignments", report)
         self.assertIn("| Most-frequent training label | 38.89% | 50.00% | 0.3333 |", report)
@@ -164,8 +165,8 @@ class BenchmarkCommand(unittest.TestCase):
         before = {path.name: path.read_bytes() for path in self.work.iterdir()}
         report = self.command("benchmark")
         self.assertEqual(report, self.command("benchmark"))
-        self.assertIn("Intermediate comparison", report)
-        self.assertIn("Ticket 05", report)
+        self.assertIn("# Adult InterVA5 replication benchmark", report)
+        self.assertIn("Training-selected learner:", report)
         self.assertIn("| Logistic regression | 25.00% | 33.33% | 0.1667 |", report)
         for strength in ("0.1", "1", "10"):
             self.assertIn(f"| {strength} | 25.00% |", report)
@@ -175,6 +176,21 @@ class BenchmarkCommand(unittest.TestCase):
         self.assertIn("y", report)
         self.assertIn("n", report)
         self.assertIn("missing/inapplicable", report)
+        self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
+
+    def test_complete_comparison_selects_logistic_and_larger_leaf_on_cv_ties(self):
+        self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5})
+        before = {path.name: path.read_bytes() for path in self.work.iterdir()}
+        report = self.command("benchmark")
+        self.assertIn("# Adult InterVA5 replication benchmark", report)
+        self.assertNotIn("Intermediate", report)
+        self.assertIn("| Random forest | 25.00% | 33.33% | 0.1667 |", report)
+        self.assertIn("Selected random-forest minimum leaf size: 5", report)
+        self.assertIn("Training-selected learner: **Logistic regression**", report)
+        self.assertIn("| 1 | 25.00% |", report)
+        self.assertIn("| 5 | 25.00% |", report)
+        self.assertIn("200 trees", report)
+        self.assertEqual(report, self.command("benchmark"))
         self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
 
     def test_logistic_failed_fits_and_non_convergence_never_emit_partial_reports(self):
@@ -207,6 +223,72 @@ class BenchmarkCommand(unittest.TestCase):
                         self.assertIn("converge", " ".join(result["errors"]))
         self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
 
+    def test_training_selected_forest_diagnostics_survive_better_logistic_test_scores(self):
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.linear_model import LogisticRegression
+
+        self.prepare({"Invented A": 20, "Invented B": 20, "Invented rare": 4}, encode_rows=True)
+        calls = {"logistic": 0, "forest": 0}
+
+        def predictions(model, features):
+            learner = "logistic" if isinstance(model, LogisticRegression) else "forest"
+            calls[learner] += 1
+            rows = features.toarray()
+            numbers = [sum(1 << bit for bit in range(16) if row[3 * bit]) for row in rows]
+            actual = ["Invented A" if number < 20 else "Invented B" for number in numbers]
+            # Logistic: every CV prediction wrong, perfect test. Forest: leaf 1
+            # perfect in CV, leaf 5 wrong; final test entirely wrong. The forest
+            # must remain selected and supply all per-cause/confusion results.
+            correct = (calls[learner] == 10 if learner == "logistic"
+                       else calls[learner] < 7 and model.min_samples_leaf == 1)
+            return actual if correct else ["Invented B" if label == "Invented A" else "Invented A"
+                                           for label in actual]
+
+        with patch.object(LogisticRegression, "predict", predictions), patch.object(
+            RandomForestClassifier, "predict", predictions
+        ):
+            report = unescape(self.command("benchmark"))
+        self.assertEqual(calls, {"logistic": 10, "forest": 7})
+        self.assertIn("Training-selected learner: **Random forest**", report)
+        self.assertIn("Selected random-forest minimum leaf size: 1", report)
+        self.assertIn("| Logistic regression | 0.00% | 100.00% | 1.0000 |", report)
+        self.assertIn("| Random forest | 100.00% | 0.00% | 0.0000 |", report)
+        self.assertIn('| <code>"Invented A"</code> | 4 | 0.00% |', report)
+        self.assertIn('| <code>"Invented B"</code> | 4 | 0.00% |', report)
+        self.assertIn('| <code>"Invented rare"</code> | 0 | not estimable (excluded) |', report)
+        self.assertIn('Recorded <code>"Invented A"</code> → predicted <code>"Invented B"</code>: 4 test records.', report)
+        self.assertIn('Recorded <code>"Invented B"</code> → predicted <code>"Invented A"</code>: 4 test records.', report)
+
+    def test_forest_failures_never_emit_partial_reports_or_artifacts(self):
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.exceptions import ConvergenceWarning
+
+        self.prepare({"Invented A": 5, "Invented B": 5})
+        before = {path.name: path.read_bytes() for path in self.work.iterdir()}
+        real_fit = RandomForestClassifier.fit
+        for fail_at in (1, 4, 7):  # First/later candidate and full-development refit.
+            for failure in (ValueError, RuntimeError, FloatingPointError, ConvergenceWarning):
+                with self.subTest(fail_at=fail_at, failure=failure):
+                    calls = []
+
+                    def fail_fit(model, *args, **kwargs):
+                        calls.append(model.min_samples_leaf)
+                        if len(calls) == fail_at:
+                            if failure is ConvergenceWarning:
+                                warnings.warn("INVENTED-private diagnostic", failure)
+                            else:
+                                raise failure("INVENTED-private diagnostic")
+                        return real_fit(model, *args, **kwargs)
+
+                    with patch.object(RandomForestClassifier, "fit", fail_fit):
+                        result = self.command("benchmark", expected=2)
+                    self.assertEqual(len(calls), fail_at)
+                    self.assertIn("random forest", " ".join(result["errors"]))
+                    self.assertIn("benchmark incomplete", " ".join(result["errors"]))
+        with patch.object(RandomForestClassifier, "predict", side_effect=ValueError("INVENTED-private")):
+            self.command("benchmark", expected=2)
+        self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
+
     def test_logistic_report_distinguishes_zero_recall_from_absent_support(self):
         from sklearn.linear_model import LogisticRegression
 
@@ -217,16 +299,17 @@ class BenchmarkCommand(unittest.TestCase):
         with patch.object(LogisticRegression, "predict", _predict_invented_a):
             report = unescape(self.command("benchmark"))
         self.assertIn("| Logistic regression | 33.33% | 33.33% | 0.1667 |", report)
-        self.assertIn("Test support | Logistic-regression recall", report)
+        self.assertIn("Test support | Selected-learner recall", report)
         self.assertIn('| <code>"Invented A"</code> | 1 | 100.00% |', report)
         self.assertIn('| <code>"Invented B"</code> | 1 | 0.00% |', report)
         self.assertIn('| <code>"Undetermined"</code> | 1 | 0.00% |', report)
         self.assertIn('| <code>"Invented rare"</code> | 0 | not estimable (excluded) |', report)
         self.assertIn("eligible labelled adults in retained classes", report)
 
-    def test_logistic_budget_encoding_and_shared_partitions_are_training_only(self):
+    def test_five_configuration_budget_encoding_and_shared_partitions_are_training_only(self):
         from sklearn import model_selection
         from sklearn.dummy import DummyClassifier
+        from sklearn.ensemble import RandomForestClassifier
         from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import Pipeline
         from sklearn.preprocessing import OneHotEncoder
@@ -235,11 +318,13 @@ class BenchmarkCommand(unittest.TestCase):
                       "Invented rare": 4}, encode_rows=True)
         splits, folds, baseline_fits, pipeline_fits, encoder_fits = [], [], [], [], []
         baseline_tests, pipeline_tests, settings = [], [], []
+        forest_settings = []
         real_split = model_selection.train_test_split
         real_folds = model_selection.StratifiedKFold.split
         real_baseline_fit, real_baseline_predict = DummyClassifier.fit, DummyClassifier.predict
         real_pipeline_fit, real_pipeline_predict = Pipeline.fit, Pipeline.predict
         real_encoder_fit, real_logistic_fit = OneHotEncoder.fit, LogisticRegression.fit
+        real_forest_fit = RandomForestClassifier.fit
 
         def observe_split(*args, **kwargs):
             result = real_split(*args, **kwargs)
@@ -291,8 +376,19 @@ class BenchmarkCommand(unittest.TestCase):
             self.assertEqual(model.l1_ratio, 0)
             return real_logistic_fit(model, features, labels, sample_weight=sample_weight, **kwargs)
 
+        def observe_forest_fit(model, features, labels, sample_weight=None, **kwargs):
+            forest_settings.append(model.min_samples_leaf)
+            self.assertEqual(model.n_estimators, 200)
+            self.assertEqual(model.random_state, 42)
+            self.assertIsNone(model.class_weight)
+            self.assertIsNone(sample_weight)
+            self.assertFalse(model.bootstrap)
+            return real_forest_fit(model, features, labels, sample_weight=sample_weight, **kwargs)
+
         with patch.object(LogisticRegression, "fit", side_effect=AssertionError("validate fitted")), patch.object(
             OneHotEncoder, "fit", side_effect=AssertionError("validate fitted preprocessing")
+        ), patch.object(
+            RandomForestClassifier, "fit", side_effect=AssertionError("validate fitted a forest")
         ):
             self.assertEqual(self.command()["models_fitted"], 0)
         with patch.object(model_selection, "train_test_split", observe_split), patch.object(
@@ -303,19 +399,26 @@ class BenchmarkCommand(unittest.TestCase):
             Pipeline, "predict", observe_pipeline_predict
         ), patch.object(OneHotEncoder, "fit", observe_encoder_fit), patch.object(
             LogisticRegression, "fit", observe_logistic_fit
+        ), patch.object(
+            RandomForestClassifier, "fit", observe_forest_fit
         ):
             report = self.command("benchmark")
         self.assertEqual(len(splits), 1)
         self.assertEqual(len(folds), 1)
-        self.assertEqual(len(pipeline_fits), 10)  # Three settings x three folds, one refit.
+        self.assertEqual(len(pipeline_fits), 17)  # Five settings x three folds, two refits.
         self.assertEqual(settings[:9], [0.1] * 3 + [1] * 3 + [10] * 3)
+        self.assertEqual(len(settings), 10)
+        self.assertEqual(forest_settings[:6], [1] * 3 + [5] * 3)
+        self.assertEqual(len(forest_settings), 7)
         self.assertIn(f"Selected logistic-regression C: {settings[-1]:g}", report)
+        self.assertIn(f"Selected random-forest minimum leaf size: {forest_settings[-1]}", report)
         self.assertEqual(encoder_fits, pipeline_fits)
-        for offset in (0, 3, 6):
+        for offset in (0, 3, 6, 9, 12):
             self.assertEqual(pipeline_fits[offset:offset + 3], baseline_fits[:3])
             self.assertEqual(pipeline_tests[offset:offset + 3], baseline_tests[:3])
-        self.assertEqual(pipeline_fits[-1], baseline_fits[-1])
-        self.assertEqual(pipeline_tests[-1], baseline_tests[-1])
+        for offset in (-2, -1):
+            self.assertEqual(pipeline_fits[offset], baseline_fits[-1])
+            self.assertEqual(pipeline_tests[offset], baseline_tests[-1])
         development, test = splits[0]
         self.assertEqual(pipeline_fits[-1], tuple(development))
         self.assertEqual(pipeline_tests[-1], tuple(test))
@@ -361,10 +464,12 @@ class BenchmarkCommand(unittest.TestCase):
 
     def test_holdout_perturbations_cannot_change_fits_or_selection(self):
         from sklearn import model_selection
+        from sklearn.ensemble import RandomForestClassifier
         from sklearn.linear_model import LogisticRegression
 
         self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5}, encode_rows=True)
         real_split, real_fit = model_selection.train_test_split, LogisticRegression.fit
+        real_forest_fit = RandomForestClassifier.fit
         holdout, fitted = [], []
 
         def observe_split(*args, **kwargs):
@@ -378,8 +483,17 @@ class BenchmarkCommand(unittest.TestCase):
                            model.coef_.tolist(), model.intercept_.tolist()))
             return result
 
+        def observe_forest_fit(model, features, labels, **kwargs):
+            result = real_forest_fit(model, features, labels, **kwargs)
+            fitted.append((model.min_samples_leaf, features.toarray().tolist(), list(labels),
+                           [tree.tree_.threshold.tolist() for tree in model.estimators_],
+                           [tree.tree_.value.tolist() for tree in model.estimators_]))
+            return result
+
         with patch.object(model_selection, "train_test_split", observe_split), patch.object(
             LogisticRegression, "fit", observe_fit
+        ), patch.object(
+            RandomForestClassifier, "fit", observe_forest_fit
         ):
             original = self.command("benchmark")
         original_fits = fitted.copy()
@@ -392,7 +506,9 @@ class BenchmarkCommand(unittest.TestCase):
         with (self.work / "indicators.csv").open("w", newline="") as stream:
             csv.writer(stream).writerows(rows)
         fitted.clear()
-        with patch.object(LogisticRegression, "fit", observe_fit):
+        with patch.object(LogisticRegression, "fit", observe_fit), patch.object(
+            RandomForestClassifier, "fit", observe_forest_fit
+        ):
             perturbed = self.command("benchmark")
         self.assertEqual(fitted, original_fits)
         # Compare the entire development selection table, never holdout scores.

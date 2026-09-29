@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-The user confirmed the command-level testing seam. Tickets 01–03 are complete: the [approved evidence summary](reviewed-input-evidence.md) has been transferred, and the [Ticket 01 completion record](issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026) records the user-confirmed missing-token lists and accepted indicator-blank rule. The user authorized Ticket 03 implementation on 29 September 2026; its [completion record](issues/03-baseline-and-partition-checks.md#completion-record--29-september-2026) documents the baseline milestone. Later tickets remain deferred until authorized.
+The user confirmed the command-level testing seam. Tickets 01–05 are complete. The [approved evidence summary](reviewed-input-evidence.md) and [Ticket 01 completion record](issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026) record the user-reviewed input contract. The user authorized Ticket 05 on 29 September 2026; its [completion record](issues/05-random-forest-and-complete-report.md#completion-record--29-september-2026) documents the completed three-model benchmark and invented-data verification. Private execution and scientific findings remain the user's responsibility.
 
 ## Problem Statement
 

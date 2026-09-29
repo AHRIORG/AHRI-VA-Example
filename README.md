@@ -6,7 +6,7 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 ## Current status
 
-Tickets 01–04 are complete. The [private input-evidence wizard](docs/private-input-evidence.md) and the user-transferred [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md) establish the reviewed input settings. `ahri-va validate` checks input integrity, exact linkage, adult/label eligibility, rare-class exclusions and partition feasibility without fitting models. `ahri-va benchmark` applies the same checks and selects logistic-regression regularisation using development cross-validation and prints an intermediate comparison with the most-frequent-training-label baseline. Random forests and final learner selection remain for Ticket 05.
+Tickets 01–05 are complete. The [private input-evidence wizard](docs/private-input-evidence.md) and the user-transferred [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md) establish the reviewed input settings. `ahri-va validate` checks input integrity, exact linkage, adult/label eligibility, rare-class exclusions and partition feasibility without fitting models. `ahri-va benchmark` applies the same checks, compares the agreed five logistic-regression/random-forest configurations using development cross-validation, and prints the final three-model report alongside the most-frequent-training-label baseline. It marks the training-selected learner and reports its per-cause recovery and frequent confusions.
 
 See the [validation guide](docs/validation.md) for the input contract and the [benchmark guide](docs/benchmark.md) for installation, invented examples, report interpretation and offline transfer. Python 3.11+ is required. Runtime dependencies, including scikit-learn, are pinned; the [configuration template](config/validation.example.json) is unchanged.
 
@@ -14,7 +14,7 @@ Start with the [benchmark specification](docs/issues/interva5-replication/spec.m
 
 ## Accepted benchmark design
 
-| Aspect | Planned behaviour |
+| Aspect | Implemented behaviour |
 | --- | --- |
 | Input interface | Two UTF-8 CSV files: harmonised indicators and the companion deaths table. The user-confirmed formats and parsing declarations are recorded in the approved evidence summary. |
 | Target and linkage | Reproduce `cause1_InterVA`, linking the tables losslessly through `IIntID`. Duplicate identifiers or conflicting targets stop the run; unmatched records are excluded and counted. |
@@ -31,7 +31,7 @@ Results describe the retained benchmark population. Five eligible examples is a 
 
 Development in this account uses source code, documentation and invented teaching fixtures. Tests may fit disposable models and inspect predictions derived exclusively from invented records.
 
-Participant records, private contracts or reports, raw logs, individual predictions and fitted models derived from real records must remain outside this development account. Only the user runs real-data commands in the separate analysis account; no agent runs there. Real-data reports remain private until the user releases reviewed aggregates. The benchmark will keep intermediate predictions in memory and will not export individual predictions or fitted models.
+Participant records, private contracts or reports, raw logs, individual predictions and fitted models derived from real records must remain outside this development account. Only the user runs real-data commands in the separate analysis account; no agent runs there. Real-data reports remain private until the user releases reviewed aggregates. The benchmark keeps intermediate predictions in memory and exports no individual predictions or fitted models.
 
 Ticket 01 provides the controlled handoff for input evidence: the user runs the wizard privately, reviews its limited summary of format/schema facts, conventions and aggregate checks, and transfers only the approved summary into this repository. Private paths, record excerpts and raw logs stay private. Unresolved assumptions remain explicit.
 
@@ -45,7 +45,7 @@ Tickets are tracked as local Markdown files, following the [issue-tracker conven
 2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — complete, using the reviewed evidence from Ticket 01; see the [validation guide](docs/validation.md).
 3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md) — complete; see the [benchmark guide](docs/benchmark.md).
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md) — complete; includes training-only tuning, per-cause recall and failure handling.
-5. [Complete the random-forest comparison and benchmark report](docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md).
+5. [Complete the random-forest comparison and benchmark report](docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md) — complete; includes the full tuning budget, training-selected learner and final three-model report.
 
 Dependencies follow **01 → 02 → 03 → 04 → 05**. Creating the wizard alone does not complete Ticket 01: the reviewed evidence handoff must also occur. Ticket readiness does not override blockers or authorize later implementation.
 
