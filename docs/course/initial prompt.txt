@@ -1,3 +1,34 @@
+Environment preparation
+
+Create folder AHRI-VA-Live
+Create subfolder docs/data_specs and copy VA specification documents there
+Create subfolder docs/agents and copy python-standards.md
+mkdir docs
+mkdir docs/data_specs
+mkdir docs/agents
+
+# Create .gitignore
+cp $HOME/AHRI-VA-Example/.gitignore .
+
+# Create data_specs
+mkdir -p "$HOME/AHRI-VA-Try/docs/data_specs"
+cp -R "$HOME/AHRI-VA-Example/docs/data_specs/." "$HOME/AHRI-VA-Try/docs/data_specs/"
+# Create docs/agents
+mkdir -p "$HOME/AHRI-VA-Try/docs/data_specs"
+cp -R "$HOME/AHRI-VA-Example/docs/agents/python-standards.md" "$HOME/AHRI-VA-Try/docs/agents/"
+
+# Create AGENTS.md
+cat > AGENTS.md << 'EOF'
+### Python standards
+
+For implementation coding standards review, read
+[Python coding standards](docs/agents/python-standards.md).
+EOF
+
+git init
+git status
+git commit -am "Initial commit"
+
 $grill-with-docs I want to develop a Python program that will read in verbal autopsy records and classify the cause of death based upon the verbal autopsy indicators in the input file. 
 Information on the input is in the attached files. This account is not allowed access to the actual data. 
 The analysis program we develop will ultimately run under the analysis account and will have access to the actual data. 
@@ -69,6 +100,8 @@ Q21 yes, and conclude the grilling
 
 Commit all changes in the repository
 
+==========
+
 $to-spec adr 0001 & 0002, use a local issue tracker in .md files under docs
 
 **Does testing through the public validate and benchmark commands, using invented CSV fixtures and checking diagnostics and reports, match your expectations?**
@@ -79,9 +112,11 @@ Yes, use this command boundary
 
 Yes, keep the defaults (recommended)
 
-$to-tickets Adult InterVA5 first-cause replication benchmark, add a HITL ticket to verify input file format in the private analysis account
+=============
 
+$to-tickets 'Adult InterVA5 first-cause replication benchmark', add a HITL ticket to verify input file format in the private analysis account
 Ticket 1 should include the creation of a wizard using the [$wizard](/Users/kobush/.agents/skills/wizard/SKILL.md) skill to gather evidence on the input file/s format and needed characteristics, which I will then transfer to this repository for use in subsequent tickets.
+Prepare an archive with all the prerequisites required that I can transfer to the private analysis account and execute there.
 
 Approve tickets
 
@@ -94,3 +129,181 @@ Published all five tickets:
 Dependencies follow 1 → 2 → 3 → 4 → 5. Ticket 1 requires your reviewed evidence handoff before completion.
 
 Add a README to the repository
+
+=========
+
+$implement ticket 01
+
+To copy to ahrianalaysis:
+sudo cp /Users/kobush/AHRI-VA-Example/dist/ahri-va-ticket01.tar.gz /Users/ahrianalysis/Downloads/
+sudo chown ahrianalysis /Users/ahrianalysis/Downloads/ahri-va-ticket01.tar.gz
+
+extract
+mkdir -p /Users/ahrianalysis/AHRI-VA-Private/runs
+tar -xzf /Users/ahrianalysis/Downloads/ahri-va-ticket01.tar.gz -C /Users/ahrianalysis/AHRI-VA-Private/runs
+
+cd runs/ahri-va-ticket01
+
+python3 -m unittest discover -s tests -v
+bash -n scripts/private-input-wizard.sh
+
+bash scripts/private-input-wizard.sh /Users/ahrianalysis/AHRI-VA-Private/input-evidence
+
+=========
+$implement ticket 02
+
+mkdir -p /Users/Shared/ahri-va-ticket02
+
+cp \
+  /Users/kobush/AHRI-VA-Example/dist/ahri_va-0.2.0-py3-none-any.whl \
+  /Users/kobush/AHRI-VA-Example/config/validation.example.json \
+  /Users/Shared/ahri-va-ticket02/
+
+chmod 755 /Users/Shared/ahri-va-ticket02
+chmod 644 \
+  /Users/Shared/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl \
+  /Users/Shared/ahri-va-ticket02/validation.example.json
+
+### On ahrianalysis
+mkdir -p "$HOME/ahri-va-ticket02"
+
+cp \
+  /Users/Shared/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl \
+  /Users/Shared/ahri-va-ticket02/validation.example.json \
+  "$HOME/ahri-va-ticket02/"
+
+python3 -m venv "$HOME/ahri-va-ticket02/.venv"
+
+"$HOME/ahri-va-ticket02/.venv/bin/python" -m pip install \
+  --no-index \
+  --no-deps \
+  "$HOME/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl"
+
+"$HOME/ahri-va-ticket02/.venv/bin/ahri-va" validate --help
+
+# actual command to validate
+"$HOME/ahri-va-ticket02/.venv/bin/ahri-va" validate \
+  --deaths "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" \
+  --indicators "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
+  --config "$HOME/ahri-va-ticket02/validation.example.json"
+
+# remember to commit ticket 2 changes
+
+===========
+
+$implement ticket 03
+
+# Transfer wheel house
+
+# On my account:
+mkdir -p /Users/Shared/ahri-va-ticket03/wheelhouse
+
+cp /Users/kobush/AHRI-VA-Example/dist/ticket03-wheelhouse/*.whl \
+  /Users/Shared/ahri-va-ticket03/wheelhouse/
+
+cp /Users/kobush/AHRI-VA-Example/config/validation.example.json \
+  /Users/kobush/AHRI-VA-Example/docs/benchmark.md \
+  /Users/kobush/AHRI-VA-Example/docs/validation.md \
+  /Users/Shared/ahri-va-ticket03/
+
+chmod 755 /Users/Shared/ahri-va-ticket03 \
+  /Users/Shared/ahri-va-ticket03/wheelhouse
+
+chmod 644 /Users/Shared/ahri-va-ticket03/*.json \
+  /Users/Shared/ahri-va-ticket03/*.md \
+  /Users/Shared/ahri-va-ticket03/wheelhouse/*.whl
+  
+  # On the ahrianalysis account
+mkdir -p "$HOME/ahri-va-ticket03/wheelhouse"
+
+cp /Users/Shared/ahri-va-ticket03/wheelhouse/*.whl \
+  "$HOME/ahri-va-ticket03/wheelhouse/"
+
+cp /Users/Shared/ahri-va-ticket03/validation.example.json \
+  /Users/Shared/ahri-va-ticket03/benchmark.md \
+  /Users/Shared/ahri-va-ticket03/validation.md \
+  "$HOME/ahri-va-ticket03/"
+
+/opt/homebrew/bin/python3.14 -m venv "$HOME/ahri-va-ticket03/.venv"
+
+"$HOME/ahri-va-ticket03/.venv/bin/python" -m pip install \
+  --no-index \
+  --find-links "$HOME/ahri-va-ticket03/wheelhouse" \
+  ahri-va==0.3.0
+
+"$HOME/ahri-va-ticket03/.venv/bin/python" -m pip check
+
+"$HOME/ahri-va-ticket03/.venv/bin/ahri-va" benchmark --help
+
+#To run
+"$HOME/ahri-va-ticket03/.venv/bin/ahri-va" benchmark \
+  --deaths "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" \
+  --indicators "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
+  --config "$HOME/ahri-va-ticket03/validation.example.json" \
+  > "$HOME/ahri-va-ticket03/baseline-report.md"
+  
+  =====================
+  $implement ticket 04
+  
+  =========================
+  $implement ticket 05
+  
+  # To transfer wheel to ahrianalysis
+  cd /Users/kobush/AHRI-VA-Example
+
+mkdir -p /Users/Shared/ahri-va-0.5.0/wheelhouse
+
+.venv/bin/python -m pip download \
+  --only-binary=:all: \
+  --python-version 3.12 \
+  --implementation cp \
+  --abi cp312 \
+  --dest /Users/Shared/ahri-va-0.5.0/wheelhouse \
+  dist/ticket05-wheelhouse/ahri_va-0.5.0-py3-none-any.whl
+
+cp config/validation.example.json \
+  docs/benchmark.md docs/validation.md \
+  /Users/Shared/ahri-va-0.5.0/
+
+chmod -R a+rX /Users/Shared/ahri-va-0.5.0
+
+# install on ahrianalysis
+umask 077
+mkdir -p "$HOME/ahri-va-0.5.0"
+
+cp /Users/Shared/ahri-va-0.5.0/validation.example.json \
+  "$HOME/ahri-va-0.5.0/validation.example.json"
+
+python3 -m venv "$HOME/ahri-va-0.5.0/.venv"
+source "$HOME/ahri-va-0.5.0/.venv/bin/activate"
+
+python -m pip install \
+  --no-index \
+  --find-links /Users/Shared/ahri-va-0.5.0/wheelhouse \
+  ahri-va==0.5.0
+
+python -m pip check
+ahri-va --help
+
+# then
+VA_DEATHS="/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" 
+VA_INDICATORS="/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" 
+VA_CONFIG="$HOME/ahri-va-0.5.0/validation.example.json"
+
+ahri-va validate \
+  --deaths "$VA_DEATHS" \
+  --indicators "$VA_INDICATORS" \
+  --config "$VA_CONFIG"
+  
+#after successfull Validation
+ahri-va benchmark \
+  --deaths "$VA_DEATHS" \
+  --indicators "$VA_INDICATORS" \
+  --config "$VA_CONFIG" \
+  > "$HOME/ahri-va-0.5.0/benchmark-report.md"
+
+echo "Exit status: $?"
+
+# Copy final result
+cp "$HOME/ahri-va-0.5.0/benchmark-report.md" /Users/Shared/
+chmod a+r /Users/Shared/benchmark-report.md

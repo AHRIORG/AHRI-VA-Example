@@ -28,3 +28,6 @@ real-data/
 Thumbs.db
 .env
 .env.*
+
+# Microsoft Office temporary lock files.
+~$*
