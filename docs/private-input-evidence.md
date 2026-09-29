@@ -293,3 +293,26 @@ does not copy, upload, commit or mark evidence approved. No predictions or fitte
 models are produced. Tell the development account when the reviewed document is
 available; link it from Ticket 01 then. Ticket 01 remains open until this handoff;
 Ticket 02 remains blocked wherever required conventions/preparation are unresolved.
+
+## Recovering a Stage 6 category error
+
+An older inspector reported `Invalid categorical evidence; rerun inspection.`
+for both review mistakes and invalid generated observations. Check each topic's
+`status` in `review.json`: the exact choices are `unresolved`, `documentary_only`
+and `user_confirmed`. Values such as `confirmed`, `reviewed`, booleans or spellings
+with spaces are not accepted. Choose the status supported by your evidence;
+do not upgrade an unresolved fact simply to clear an error.
+
+The updated inspector identifies the document and field, lists accepted choices
+and omits the rejected value. For a `review.json` status error, edit only that
+review setting and retry `summary` from the directory containing `scripts/`:
+
+```bash
+python3 scripts/input_evidence.py summary --work-dir /absolute/private/input-evidence
+```
+
+You do not need to restart the wizard or initialize a new evidence directory.
+For an `observations.json` category error, regenerate observations with `inspect`
+before retrying `summary`; do not manually alter generated categories. When
+updating the inspector, replace the installed `scripts/input_evidence.py` with
+the new source and keep your existing private evidence directory intact.

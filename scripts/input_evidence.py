@@ -14,7 +14,7 @@ from pathlib import Path
 import platform
 import re
 import zlib
-from typing import Any
+from typing import Any, Literal
 
 
 SCHEMA = json.loads(Path(__file__).with_name("documented-schema.json").read_text())
@@ -22,6 +22,7 @@ REVIEW_TOPICS = (
     "v2_compatibility", "identifier_preservation", "age_at_death",
     "missing_conventions", "undetermined_assignment", "preparation",
 )
+REVIEW_STATUSES = ("unresolved", "documentary_only", "user_confirmed")
 DELIMITERS = {"comma": ",", "semicolon": ";", "tab": "\t", "pipe": "|"}
 QUOTES = {"double": '"', "single": "'", "none": None}
 ENCODINGS = ("utf-8", "utf-8-sig", "utf-16", "cp1252", "latin-1")
@@ -300,9 +301,23 @@ def release_number(value: Any) -> str:
     return str(value)
 
 
-def release_choice(value: Any, allowed: tuple[str, ...]) -> str:
+def release_choice(
+    value: Any,
+    allowed: tuple[str, ...],
+    *,
+    document: Literal["review.json", "observations.json"],
+    field: str,
+) -> str:
+    """Validate a category, reporting only caller-controlled field names and choices."""
     if not isinstance(value, str) or value not in allowed:
-        raise EvidenceError("Invalid categorical evidence; rerun inspection.")
+        recovery = (
+            "Edit review.json, then rerun summary."
+            if document == "review.json"
+            else "Rerun inspect, then summary; do not edit generated observations."
+        )
+        raise EvidenceError(
+            f"{document}: {field} must be one of: {', '.join(allowed)}. {recovery}"
+        )
     return value
 
 
@@ -329,7 +344,10 @@ def summary(work: Path) -> None:
         decision = review.get(topic)
         if not isinstance(decision, dict):
             raise EvidenceError("Review is missing a required topic.")
-        status = release_choice(decision.get("status"), ("unresolved", "documentary_only", "user_confirmed"))
+        status = release_choice(
+            decision.get("status"), REVIEW_STATUSES,
+            document="review.json", field=f"{topic}.status",
+        )
         approved = decision.get("release_approved")
         statement = decision.get("release_statement")
         if type(approved) is not bool or not isinstance(statement, str):
@@ -353,7 +371,10 @@ def summary(work: Path) -> None:
             raise EvidenceError("Invalid runtime evidence; rerun inspection.")
         lines.extend([f"Listed input files: {len(observed['inputs'])}. Observed Python version: {version}.", ""])
     for index, item in enumerate(observed["inputs"], 1):
-        status = release_choice(item["status"], ("observed", "unsupported", "unreadable_or_malformed", "serialization_unresolved"))
+        status = release_choice(
+            item["status"], ("observed", "unsupported", "unreadable_or_malformed", "serialization_unresolved"),
+            document="observations.json", field=f"inputs[{index - 1}].status",
+        )
         if any(sections.values()):
             lines.extend([f"### Input {index}", "", f"Inspection status: {status}.", ""])
         if status != "observed" and (sections["inventory"] or sections["serialization"]):
@@ -364,7 +385,11 @@ def summary(work: Path) -> None:
                 ("declared_organisation", ORGANISATIONS), ("observed_container", CONTAINERS),
             ):
                 if key in item:
-                    lines.append(f"- {key}: {release_choice(item[key], choices)}")
+                    choice = release_choice(
+                        item[key], choices, document="observations.json",
+                        field=f"inputs[{index - 1}].{key}",
+                    )
+                    lines.append(f"- {key}: {choice}")
             lines.append("")
         if status != "observed":
             continue

@@ -258,6 +258,39 @@ class EvidenceCommands(unittest.TestCase):
         self.assertNotIn("PRIVATE-CONFIG", result.stdout + result.stderr)
         self.assertNotIn("Traceback", result.stdout + result.stderr)
 
+    def test_invalid_review_status_names_the_field_and_valid_choices_without_its_value(self):
+        self.prepare()
+        self.run_command("inspect")
+        review = self.load("review.json")
+        review["age_at_death"]["status"] = "PRIVATE-INVALID-STATUS"
+        self.save("review.json", review)
+        result = self.run_command("summary", expected=2)
+        self.assertIn("review.json: age_at_death.status", result.stdout)
+        self.assertIn("unresolved, documentary_only, user_confirmed", result.stdout)
+        self.assertNotIn("rerun inspection", result.stdout)
+        self.assertNotIn("PRIVATE-INVALID-STATUS", result.stdout + result.stderr)
+        review["age_at_death"]["status"] = "unresolved"
+        self.save("review.json", review)
+        self.run_command("summary")
+
+    def test_invalid_observed_categories_name_generated_fields_without_their_values(self):
+        self.prepare()
+        self.run_command("inspect")
+        review = self.load("review.json")
+        review["release_sections"]["inventory"] = True
+        self.save("review.json", review)
+        for field in ("status", "role", "declared_format", "declared_organisation", "observed_container"):
+            with self.subTest(field=field):
+                observed = self.load("observations.json")
+                observed["inputs"][0][field] = "PRIVATE-INVALID-CATEGORY"
+                self.save("observations.json", observed)
+                result = self.run_command("summary", expected=2)
+                self.assertIn(f"observations.json: inputs[0].{field}", result.stdout)
+                self.assertIn("Rerun inspect", result.stdout)
+                self.assertNotIn("PRIVATE-INVALID-CATEGORY", result.stdout + result.stderr)
+                self.run_command("inspect")
+                self.run_command("summary")
+
     def test_withheld_sections_also_withhold_derived_blocker_details(self):
         self.prepare(deaths=[
             {"IIntID": "SAME", "Age_in_years": "18", "cause1_InterVA": "Invented A"},
