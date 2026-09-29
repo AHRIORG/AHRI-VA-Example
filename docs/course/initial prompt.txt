@@ -93,4 +93,4 @@ Published all five tickets:
 5. [Random forest and complete report](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md)
 Dependencies follow 1 → 2 → 3 → 4 → 5. Ticket 1 requires your reviewed evidence handoff before completion.
 
-
+Add a README to the repository
