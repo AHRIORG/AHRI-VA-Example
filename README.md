@@ -8,7 +8,7 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 has a [private input-evidence wizard](docs/private-input-evidence.md), a Python inspector and invented-fixture tests. The user has run the wizard privately and transferred the [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md). Final missing-value decisions remain open. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
 
-Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [handoff review](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026). The user confirmed the input formats and key meanings. Indicator-blank handling and exhaustive missing-token lists still require decisions before Ticket 02's input contract is finalized.
+Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [handoff review](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026). The user confirmed the input formats and key meanings. Blank indicators follow the accepted rejection rule unless an explicit mapping is reviewed. Exhaustive missing-token lists still require confirmation before Ticket 02's input contract is finalized.
 
 ## Accepted benchmark design
 
