@@ -1,3 +1,3 @@
-"""Adult InterVA5 replication input validation."""
+"""Adult InterVA5 replication validation and baseline benchmark."""
 
 __all__: list[str] = []

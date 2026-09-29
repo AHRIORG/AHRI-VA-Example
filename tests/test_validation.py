@@ -56,7 +56,13 @@ class ValidateCommand(unittest.TestCase):
         self.table("deaths", deaths)
         self.table("indicators", indicators)
 
-    def run_command(self, expected=0, argv=None):
+    def run_command(self, expected=None, argv=None):
+        # These Ticket 02 fixtures deliberately contain too few eligible adults
+        # for Ticket 03. Still assert their input/eligibility counts through the
+        # public command's explicit population-failure summary.
+        population_failure = expected is None
+        if population_failure:
+            expected = 2
         if argv is None:
             argv = ["validate", "--deaths", str(self.work / "deaths.csv"),
                     "--indicators", str(self.work / "indicators.csv"),
@@ -69,18 +75,22 @@ class ValidateCommand(unittest.TestCase):
         self.assertNotIn("SENSITIVE-INVENTED", out.getvalue() + err.getvalue())
         if expected:
             self.assertEqual(out.getvalue(), "")
-            return json.loads(err.getvalue())
+            failure = json.loads(err.getvalue())
+            if population_failure:
+                self.assertIn("population: require at least two retained classes", " ".join(failure["errors"]))
+                return failure["summary"]
+            return failure
         self.assertEqual(err.getvalue(), "")
         return json.loads(out.getvalue())
 
-    def test_success_is_eligibility_only_and_creates_no_artifacts(self):
+    def test_eligible_input_can_fail_population_checks_without_creating_artifacts(self):
         before = {path.name: path.read_bytes() for path in self.work.iterdir()}
         result = self.run_command()
-        self.assertEqual(result["status"], "valid")
+        self.assertEqual(result["status"], "failed")
         self.assertEqual(result["eligible_labelled_adults"], 1)
         self.assertEqual(result["predictor_count"], 353)
         self.assertEqual(result["models_fitted"], 0)
-        self.assertEqual(result["benchmark_feasibility"], "not_checked")
+        self.assertEqual(result["benchmark_feasibility"], "infeasible")
         self.assertEqual(result["eligible_indicator_states"], {"y": 0, "n": 0, "-": 353})
         self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
 
@@ -279,7 +289,7 @@ class ValidateCommand(unittest.TestCase):
                 self.prepare(rows)
                 result = self.run_command()
                 self.assertEqual(result["eligible_labelled_adults"], 0)
-                self.assertEqual(result["benchmark_feasibility"], "not_checked")
+                self.assertEqual(result["benchmark_feasibility"], "infeasible")
 
     def test_invalid_configuration_fails_before_opening_inputs(self):
         original = self.config
@@ -325,8 +335,9 @@ class ValidateCommand(unittest.TestCase):
              "--indicators", str(self.work / "indicators.csv"), "--config", str(self.work / "config.json")],
             cwd=ROOT / "src", capture_output=True, text=True,
         )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["eligible_labelled_adults"], 1)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(json.loads(result.stderr)["summary"]["eligible_labelled_adults"], 1)
 
 
 if __name__ == "__main__":

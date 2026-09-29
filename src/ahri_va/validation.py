@@ -9,6 +9,7 @@ from importlib.resources import files
 import json
 from pathlib import Path
 import re
+from typing import TypedDict
 
 from ahri_va.config import Configuration, ValidationError
 
@@ -24,6 +25,27 @@ _AGE_NUMBER = re.compile(r"[+]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\Z")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 
+class InputCounts(TypedDict):
+    rows: int
+    missing_identifiers: int
+    unmatched: int
+
+
+class EligibilitySummary(TypedDict):
+    status: str
+    scope: str
+    benchmark_feasibility: str
+    models_fitted: int
+    inputs: dict[str, InputCounts]
+    matched_records: int
+    exclusions: dict[str, int]
+    eligible_labelled_adults: int
+    distinct_target_classes: int
+    undetermined_assignments: int
+    predictor_count: int
+    eligible_indicator_states: dict[str, int]
+
+
 @dataclass(frozen=True)
 class EligibleInputs:
     """Eligible feature rows and exact labels, plus a value-free command summary.
@@ -35,7 +57,7 @@ class EligibleInputs:
 
     features: tuple[tuple[str, ...], ...]
     targets: tuple[str, ...]
-    summary: dict[str, object]
+    summary: EligibilitySummary
 
 
 @dataclass
@@ -221,7 +243,7 @@ def validate_inputs(deaths: Path, indicators: Path, config: Configuration) -> El
         features.append(row)
         targets.append(target)
         states.update(row)
-    summary = {
+    summary: EligibilitySummary = {
         "status": "valid",
         "scope": "input_integrity_and_adult_label_eligibility",
         "benchmark_feasibility": "not_checked",

@@ -1,20 +1,21 @@
-# Validate inputs and adult eligibility
+# Validate inputs, adult eligibility and benchmark feasibility
 
-Ticket 02 delivers `ahri-va validate`. It checks input integrity, exact one-to-one
-linkage and adult/target eligibility without fitting models. It does **not**
-establish rare-class or partition feasibility; those checks belong to Ticket 03.
-An empty eligible population can pass this milestone's input checks.
+`ahri-va validate` checks input integrity, exact one-to-one linkage and
+adult/target eligibility, then applies Ticket 03's rare-class and partition
+checks without fitting models. An empty eligible population now fails benchmark
+feasibility. The [baseline guide](benchmark.md) describes those checks and the
+`benchmark` command. Both commands share the input rules below.
 
 ## Install and try invented records
 
-Use Python 3.11 or newer. There are no third-party runtime or test dependencies;
-the build dependencies are pinned in `requirements-build.txt` and `pyproject.toml`.
+Use Python 3.11 or newer. Runtime and build dependencies are pinned in
+`pyproject.toml` and `requirements-build.txt`.
 From the repository root:
 
 ```bash
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-build.txt
-.venv/bin/python -m pip install --no-build-isolation --no-deps .
+.venv/bin/python -m pip install --no-build-isolation .
 python3 examples/write_invented_inputs.py --output-dir /tmp/ahri-va-invented-example
 .venv/bin/ahri-va validate \
   --deaths /tmp/ahri-va-invented-example/deaths.csv \
@@ -24,14 +25,17 @@ python3 examples/write_invented_inputs.py --output-dir /tmp/ahri-va-invented-exa
 
 Choose a new output directory for each example run. The generator creates only
 invented records and refuses to overwrite an existing directory. Its expected
-result is 10 rows in each table, one missing identifier in each, one unmatched
-record in each, eight matched records and three eligible labelled adults. The
+result is 26 rows in each table, one missing identifier in each, one unmatched
+record in each, 24 matched records and 19 eligible labelled adults. The
 five remaining matched records have one exclusion each: missing age, invalid
-age, under 18, missing target and unusable target. One eligible assignment is
-`Undetermined`; eligible indicator totals are `y: 3`, `n: 3`, `-: 1053`.
+age, under 18, missing target and unusable target. The
+`Undetermined` class has five eligible assignments; eligible indicator totals
+are `y: 19`, `n: 19`, `-: 6669`. Four records in `Invented rare cause` are excluded,
+leaving 15 records across three classes, a 12/3 development/test split and three
+8/4 training/validation folds.
 
 The equivalent module command is `.venv/bin/python -m ahri_va validate ...`.
-Run the command tests using `python3 -m unittest discover -s tests -v`; all inputs
+Run the command tests using `.venv/bin/python -m unittest discover -s tests -v`; all inputs
 are created from invented fixtures in temporary directories.
 
 To build an offline-installable wheel after installing the build dependencies:
@@ -40,10 +44,11 @@ To build an offline-installable wheel after installing the build dependencies:
 .venv/bin/python -m pip wheel --no-build-isolation --no-deps --no-index . --wheel-dir dist
 ```
 
-The resulting `dist/ahri_va-0.2.0-py3-none-any.whl` contains the predictor
-allowlist. On the destination account, the user can install that wheel into a
-virtual environment with `python -m pip install --no-index --no-deps <wheel>`.
-Transfer the configuration template and this guide separately as needed. The
+The resulting `dist/ahri_va-0.3.0-py3-none-any.whl` contains the predictor
+allowlist. Ticket 03 also requires the pinned runtime dependencies on the
+destination; follow the [offline transfer instructions](benchmark.md#offline-transfer)
+to collect compatible wheels. Transfer the configuration template and guides
+separately as needed. The
 older Ticket 01 transfer-bundle builder packages only the evidence tooling.
 
 ## Reviewed input contract
@@ -108,26 +113,35 @@ For structurally valid tables:
    one exclusion reason.
 4. Count the remaining eligible labelled adults, exact distinct classes,
    undetermined assignments and the three eligible indicator states.
+5. Exclude every class with fewer than five eligible labelled adults; count all
+   affected records, preserve exact retained labels and require two classes.
+6. Create the fixed stratified split and folds and verify class coverage.
 
 For **each input**, `rows = missing_identifiers + unmatched + matched_records`.
 For the matched population, `matched_records = sum(exclusions) +
 eligible_labelled_adults`. Missing/invalid targets on an excluded age record do
-not add another exclusion. Counts describe input/eligibility readiness only.
+not add another exclusion. `eligible_labelled_adults = population.excluded_records
++ population.retained_records`. Class counts are computed after eligibility.
 
 ## Outcomes and private execution
 
 Exit code **0** writes an aggregate JSON result to stdout with `status: "valid"`,
-`scope: "input_integrity_and_adult_label_eligibility"`,
-`benchmark_feasibility: "not_checked"` and `models_fitted: 0`.
+`scope: "input_eligibility_population_and_partitions"`,
+`benchmark_feasibility: "feasible"` and `models_fitted: 0`. The `population` and
+`partitions` objects contain exact class labels and aggregate counts, retained
+fraction, seed and split/fold sizes. No row indices or membership are exported.
 Exit code **2** writes JSON errors to stderr naming known fields and aggregate
 counts where available. Syntax/decoding failures report at least one detected
 malformed record, not a complete count from an unreadable remainder. Neither
-outcome echoes paths, identifiers, target labels, unexpected values or record
-excerpts. No report, individual predictions or fitted models are written.
+outcome echoes paths, identifiers, unexpected field values or record excerpts.
+Class/partition failures include a `summary` with completed inclusion/exclusion
+counts and `benchmark_feasibility: "infeasible"`. Exact class labels occur only
+in aggregate summaries, not diagnostic messages. Empty-denominator coverage is
+JSON `null` (not estimable). No output files are written by `validate`.
 
 The user alone runs participant-input commands in the separate analysis
 account, using private paths in place of the invented example paths. Validation
 output stays in that account until the user reviews it for release. Software
 checks cannot establish the meaning or completeness of future inputs, their
-class/partition feasibility or the scientific validity of an eventual benchmark.
+scientific validity or private-data feasibility without private execution.
 Instructions, configuration flags and Git ignores do not enforce access controls.

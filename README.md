@@ -6,9 +6,9 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 ## Current status
 
-Tickets 01 and 02 are complete. The [private input-evidence wizard](docs/private-input-evidence.md) and the user-transferred [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md) establish the reviewed input settings. The installable `ahri-va validate` command checks input integrity, exact linkage and adult/label eligibility using the fixed 353-indicator allowlist. It fits no models and does not establish rare-class or partition feasibility. `benchmark` and Tickets 03–05 remain unimplemented.
+Tickets 01–03 are complete. The [private input-evidence wizard](docs/private-input-evidence.md) and the user-transferred [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md) establish the reviewed input settings. `ahri-va validate` checks input integrity, exact linkage, adult/label eligibility, rare-class exclusions and partition feasibility without fitting models. `ahri-va benchmark` applies the same checks and prints the most-frequent-training-label baseline report. Logistic regression and the full three-model comparison remain for Tickets 04 and 05.
 
-See the [validation guide](docs/validation.md) for installation, the [configuration template](config/validation.example.json), a complete invented-input example, aggregate output and private-execution instructions. Python 3.11+ is required; runtime and tests use only the standard library, and build dependencies are pinned.
+See the [validation guide](docs/validation.md) for the input contract and the [baseline benchmark guide](docs/benchmark.md) for installation, invented examples, report interpretation and offline transfer. Python 3.11+ is required. Runtime dependencies, including scikit-learn, are pinned; the [configuration template](config/validation.example.json) is unchanged.
 
 Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [Ticket 01 completion record](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026). The user confirmed the input formats, key meanings and `[""]` missing-token lists for identifiers, ages and targets. Blank indicators follow the accepted rejection rule unless an explicit mapping is reviewed. The handoff contains the reviewed basis for Ticket 02's input contract.
 
@@ -43,7 +43,7 @@ Tickets are tracked as local Markdown files, following the [issue-tracker conven
 
 1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — complete, including private execution, approved evidence transfer and recorded missing-value conventions.
 2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — complete, using the reviewed evidence from Ticket 01; see the [validation guide](docs/validation.md).
-3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md).
+3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md) — complete; see the [baseline guide](docs/benchmark.md).
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md).
 5. [Complete the random-forest comparison and benchmark report](docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md).
 
@@ -54,7 +54,7 @@ Dependencies follow **01 → 02 → 03 → 04 → 05**. Creating the wizard alon
 The [execution guide](docs/private-input-evidence.md) covers prerequisites, all six stages, captured values and private review/transfer. Bash and Python 3.11+ are sufficient; the runtime uses only the Python standard library and works offline. The interactive wizard is for the human in the analysis account. Development checks use invented records only:
 
 ```bash
-python3 -m unittest discover -s tests -v
+.venv/bin/python -m unittest discover -s tests -v
 bash -n scripts/private-input-wizard.sh
 ```
 
