@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "serialization": {
+    "encoding": "utf-8",
+    "delimiter": "comma",
+    "quote": "double",
+    "escape": "none",
+    "doublequote": true,
+    "header_row": 1
+  },
+  "identifier_normalization": "none",
+  "age_semantics": "completed_years_at_death",
+  "missing_tokens": {
+    "identifier": [""],
+    "age": [""],
+    "target": [""]
+  },
+  "undetermined_label": "Undetermined",
+  "indicator_blank_mapping": "reject",
+  "indicator_blank_mapping_reviewed": false
+}

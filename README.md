@@ -1,12 +1,14 @@
 # AHRI-VA-Example
 
-A planned Python benchmark for reproducing recorded InterVA5 first-cause assignments from harmonised verbal-autopsy indicators for adult deaths aged 18 years or older in the documented 2000–2024 study period.
+A Python project for reproducing recorded InterVA5 first-cause assignments from harmonised verbal-autopsy indicators for adult deaths aged 18 years or older in the documented 2000–2024 study period.
 
 The research outcome is **replication agreement**: how closely simple classifiers reproduce existing InterVA5 assignments. Agreement does not establish accuracy against independently determined causes of death. The intended use is population research and research review.
 
 ## Current status
 
-The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 is complete: the [private input-evidence wizard](docs/private-input-evidence.md), Python inspector and invented-fixture tests are delivered, and the user has completed private execution and transferred the [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md). Ticket 02 is ready for the user's next session. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
+Tickets 01 and 02 are complete. The [private input-evidence wizard](docs/private-input-evidence.md) and the user-transferred [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md) establish the reviewed input settings. The installable `ahri-va validate` command checks input integrity, exact linkage and adult/label eligibility using the fixed 353-indicator allowlist. It fits no models and does not establish rare-class or partition feasibility. `benchmark` and Tickets 03–05 remain unimplemented.
+
+See the [validation guide](docs/validation.md) for installation, the [configuration template](config/validation.example.json), a complete invented-input example, aggregate output and private-execution instructions. Python 3.11+ is required; runtime and tests use only the standard library, and build dependencies are pinned.
 
 Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [Ticket 01 completion record](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026). The user confirmed the input formats, key meanings and `[""]` missing-token lists for identifiers, ages and targets. Blank indicators follow the accepted rejection rule unless an explicit mapping is reviewed. The handoff contains the reviewed basis for Ticket 02's input contract.
 
@@ -40,7 +42,7 @@ See [AGENTS.md](AGENTS.md) for the development rules. Instructions and Git ignor
 Tickets are tracked as local Markdown files, following the [issue-tracker conventions](docs/agents/issue-tracker.md) and [triage vocabulary](docs/agents/triage-labels.md).
 
 1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — complete, including private execution, approved evidence transfer and recorded missing-value conventions.
-2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — uses the reviewed evidence from Ticket 01.
+2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — complete, using the reviewed evidence from Ticket 01; see the [validation guide](docs/validation.md).
 3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md).
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md).
 5. [Complete the random-forest comparison and benchmark report](docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md).
