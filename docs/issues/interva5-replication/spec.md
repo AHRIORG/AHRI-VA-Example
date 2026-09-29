@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-The user confirmed the command-level testing seam. Ticket 01 tooling was authorized on 29 September 2026, and the [approved evidence summary](reviewed-input-evidence.md) has been transferred. Later tickets remain deferred; the [handoff review](issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026) records the remaining missing-value decisions.
+The user confirmed the command-level testing seam. Ticket 01 is complete: the [approved evidence summary](reviewed-input-evidence.md) has been transferred, and the [completion record](issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026) records the user-confirmed missing-token lists and accepted indicator-blank rule. Ticket 02 is unblocked; its implementation remains deferred to the user's next session.
 
 ## Problem Statement
 

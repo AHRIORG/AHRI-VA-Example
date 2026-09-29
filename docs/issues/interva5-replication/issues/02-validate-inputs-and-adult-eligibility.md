@@ -1,12 +1,13 @@
 # 02 — Validate inputs and identify eligible labelled adults
 
 Status: ready-for-agent
+Progress: open
 
 **Parent:** [Adult InterVA5 first-cause replication benchmark](../spec.md)
 
-**Blocked by:** [01 — HITL: Create and run a private input-evidence wizard](01-private-input-evidence-wizard.md), including the user's transfer of reviewed evidence and resolution of input-contract blockers.
+**Blocked by:** None — [Ticket 01](01-private-input-evidence-wizard.md) is resolved. Implementation remains deferred to the user's next session.
 
-**Reviewed evidence received:** [Approved input-evidence summary](../reviewed-input-evidence.md). The [Ticket 01 handoff review](01-private-input-evidence-wizard.md#handoff-review--29-september-2026) records the remaining question: exhaustive missing-token lists for identifiers, ages and targets. Resolve that with the user when resuming; do not infer the lists from zero observed counts. Blank indicators already follow the accepted rejection rule unless an explicit mapping is reviewed; no such mapping has been released, and zero blanks were observed. The user deferred Ticket 02 implementation to a later session.
+**Reviewed evidence received:** [Approved input-evidence summary](../reviewed-input-evidence.md) and [Ticket 01 completion record](01-private-input-evidence-wizard.md#completion-record--29-september-2026). The user confirmed `[""]` as the declared missing-token list for each of `IIntID`, `Age_in_years` and `cause1_InterVA`. Match tokens exactly. Reject blank indicators under the accepted rule, keep `-` as missing/inapplicable, and retain the exact target label `Undetermined` as a class. The summary confirms v2 fields, lossless identifier preservation, completed age at death and two UTF-8 CSV inputs; no additional conversion is required. These facts and settings come from the user's release and handoff discussion, not from invented-fixture tests or inferred zero counts.
 
 **What to build:** A usable Python `validate` command that accepts the agreed two UTF-8 CSV inputs plus explicit configuration, checks their integrity and reports how many records have an unambiguous link, adult eligibility and a usable InterVA5 first-cause label. The configuration template and preparation guidance use Ticket 01's reviewed evidence; invented examples demonstrate the complete command without accessing participant records.
 

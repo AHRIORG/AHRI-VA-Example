@@ -1,11 +1,11 @@
 # 01 — HITL: Create and run a private input-evidence wizard
 
 Status: ready-for-human
-Progress: claimed
+Progress: resolved
 
 **Parent:** [Adult InterVA5 first-cause replication benchmark](../spec.md)
 
-**Blocked by:** Final missing-value decisions listed in the [handoff review](#handoff-review--29-september-2026).
+**Blocked by:** None. The [completion record](#completion-record--29-september-2026) closes the input-evidence handoff.
 
 **What to build:** An interactive Bash wizard, created using the `$wizard` skill, that helps the user establish the actual input files' formats and the characteristics needed for the adult InterVA5 first-cause replication benchmark. The agent develops and verifies the tooling using invented teaching fixtures. The user runs it in the separate private analysis account, reviews its evidence summary and transfers only the approved summary into this repository for subsequent tickets.
 
@@ -27,11 +27,11 @@ Progress: claimed
 - [x] Preserve the distinction between confirmed facts, documentary expectations, automated observations and unresolved assumptions. Unexpected codes or conflicts remain actionable findings rather than being silently repaired. No benchmark fitting is required for this ticket.
 - [x] Run Bash syntax validation and ShellCheck when available; statically trace captured values to their intended destinations. Verify Python inspection and summary-generation behaviour with invented fixtures only, including malformed/unsupported inputs and omission of record values from the proposed summary. Do not run the interactive wizard end to end as an agent.
 - [x] Supply clear private-execution, review and transfer instructions. The user runs the wizard, reviews the summary and transfers the approved evidence into this repository. Link that evidence from this ticket when completing it; script creation alone does not complete the ticket.
-- [ ] The evidence gives Ticket 02 a reviewed basis for its input contract and preparation guidance. Any unresolved matter that prevents implementing that contract remains an explicit blocker requiring a user decision; no actual-input fact is inferred from invented-fixture tests.
+- [x] The evidence gives Ticket 02 a reviewed basis for its input contract and preparation guidance. Any unresolved matter that prevents implementing that contract remains an explicit blocker requiring a user decision; no actual-input fact is inferred from invented-fixture tests.
 
 ## Execution boundary
 
-This is a human-in-the-loop ticket with agent-authored tooling. The user authorized Ticket 01 implementation on 29 September 2026 and confirmed the six-stage capture plan and Python command testing boundary. Source, documentation and invented fixtures are the only development inputs; instructions and Git ignores do not enforce access controls. Human execution, release review and evidence transfer remain required for completion.
+This is a human-in-the-loop ticket with agent-authored tooling. The user authorized Ticket 01 implementation on 29 September 2026 and confirmed the six-stage capture plan and Python command testing boundary. Source, documentation, user-released evidence and invented fixtures are the development inputs; instructions and Git ignores do not enforce access controls. The user completed private execution, release review and evidence transfer. Agents did not execute real-data commands.
 
 ## Comments
 
@@ -41,7 +41,7 @@ The user also requested an offline transfer archive and confirmed the destinatio
 
 Code review compared this work with `bc71f02335e1326b59d16d1d0f775c7fa08e4e61` on separate standards and spec axes. The standards review found duplicated categorical choices (P3 heuristic), now shared. The spec review found detailed blocker messages bypassed section opt-outs (P2), now gated by the same release choices and covered by an invented-command regression test. No actual-input conclusions were drawn.
 
-**Human handoff received:** the user privately ran the tooling and transferred the [approved evidence summary](../reviewed-input-evidence.md). The final input-contract decisions below remain open, so this ticket remains claimed and Ticket 02 remains blocked. Actual-input facts below come from the user's release, not from invented-fixture tests.
+**Human handoff completed:** the user privately ran the tooling, confirmed the missing-token settings in the handoff discussion, and transferred the updated [approved evidence summary](../reviewed-input-evidence.md). The [completion record](#completion-record--29-september-2026) supersedes the earlier open questions below. Ticket 02 is unblocked but remains unstarted at the user's request. Actual-input facts come from the user's release and confirmations, not from invented-fixture tests.
 
 Stage 6 follow-up: the user reported the generic `Invalid categorical evidence; rerun inspection.` message. Invented command fixtures reproduced it for both invalid review statuses and invalid generated observation categories; the private trigger was not inspected. Diagnostics now name only the known document/field and allowed choices, with recovery appropriate to that document. A review-status correction can be retried through `summary` without rerunning inspection or losing saved review work. The [guide](../../../private-input-evidence.md#recovering-a-stage-6-category-error) documents recovery.
 
@@ -59,4 +59,25 @@ The wizard should have shown the observed blank count, explained the accepted re
 
 **Remaining contract question — complete missing-token lists:** confirm the exact, exhaustive missing tokens for `IIntID`, `Age_in_years` and `cause1_InterVA`. The release confirms empty age/target cells mean missing, but does not say these are the only tokens or specify the identifier convention. Zero declared-missing counts cannot establish those lists. Preserve `Undetermined` as a target class, distinct from an absent label.
 
-The user will resume later with Ticket 02. No Ticket 02 implementation was started. Keep the remaining acceptance item open until the complete missing-token conventions are recorded; do not infer them from the observed counts.
+At this first handoff review, the complete missing-token conventions still needed to be recorded. The following completion record resolves that question using the user's subsequent confirmation.
+
+## Completion record — 29 September 2026
+
+The user confirmed in the handoff discussion that the quoted `missing_tokens` object was already present in the private inventory. These are the exact declared settings, supplied by the user rather than inferred from zero counts:
+
+```json
+{
+  "missing_tokens": {
+    "identifier": [""],
+    "age": [""],
+    "target": [""]
+  },
+  "indicator_blank_mapping": "reject"
+}
+```
+
+The three token lists declare only the empty string as missing for `IIntID`, `Age_in_years` and `cause1_InterVA`. Match exact strings without automatic trimming or case conversion. The indicator setting records the accepted rejection rule: accept `y`, `n` and `-`, preserve `-` as the missing/inapplicable indicator response, and reject blank indicator cells unless a different mapping is explicitly reviewed later. Keep `Undetermined` as an exact target class, outside the target missing-token list.
+
+After receiving the command instructions, the user privately reran inspection and summary generation, reviewed the result, marked it `APPROVED`, and transferred the updated [evidence summary](../reviewed-input-evidence.md). It reports no automated contract blockers. Its aggregate counts are unchanged and still reconcile. The generated footer describes the state before human review/transfer; the approval and this completion record establish the completed handoff. The generator does not print the configured token lists, so the user-confirmed values are recorded here explicitly. No private inventory, observations or participant inputs were opened for this completion check.
+
+All Ticket 01 acceptance criteria are complete. Ticket 02 can use the approved summary and this completion record for its configuration template and preparation guidance. Ticket 02 implementation remains deferred to the user's next session; private-data feasibility and benchmark results remain outside this handoff.

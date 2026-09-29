@@ -6,17 +6,17 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 ## Current status
 
-The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 has a [private input-evidence wizard](docs/private-input-evidence.md), a Python inspector and invented-fixture tests. The user has run the wizard privately and transferred the [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md). Final missing-value decisions remain open. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
+The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 is complete: the [private input-evidence wizard](docs/private-input-evidence.md), Python inspector and invented-fixture tests are delivered, and the user has completed private execution and transferred the [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md). Ticket 02 is ready for the user's next session. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
 
-Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [handoff review](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026). The user confirmed the input formats and key meanings. Blank indicators follow the accepted rejection rule unless an explicit mapping is reviewed. Exhaustive missing-token lists still require confirmation before Ticket 02's input contract is finalized.
+Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [Ticket 01 completion record](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#completion-record--29-september-2026). The user confirmed the input formats, key meanings and `[""]` missing-token lists for identifiers, ages and targets. Blank indicators follow the accepted rejection rule unless an explicit mapping is reviewed. The handoff contains the reviewed basis for Ticket 02's input contract.
 
 ## Accepted benchmark design
 
 | Aspect | Planned behaviour |
 | --- | --- |
-| Input interface | Two UTF-8 CSV files: harmonised indicators and the companion deaths table. This is the supported interchange contract; the actual source formats still need private verification. |
+| Input interface | Two UTF-8 CSV files: harmonised indicators and the companion deaths table. The user-confirmed formats and parsing declarations are recorded in the approved evidence summary. |
 | Target and linkage | Reproduce `cause1_InterVA`, linking the tables losslessly through `IIntID`. Duplicate identifiers or conflicting targets stop the run; unmatched records are excluded and counted. |
-| Adult eligibility | Use `Age_in_years >= 18`, conditional on private confirmation of completed age at death and missing/invalid-value conventions. |
+| Adult eligibility | Use `Age_in_years >= 18`; the user confirmed completed age at death and an empty-string missing token. Exclude and count missing or invalid ages. |
 | Predictors | Use the 353 documented harmonised indicators. Exclude identifiers, metadata, algorithm outputs and the five additional COVID fields. Keep `y`, `n` and `-` distinct; `-` represents missing/inapplicable information. |
 | Target classes | Preserve exact labels, including a documented explicit undetermined assignment. Exclude absent/unusable targets. Before splitting, remove classes with fewer than five eligible labelled adults and require at least two retained classes. |
 | Models | Compare a most-frequent-training-label baseline, regularised multinomial logistic regression and a random forest, with the fixed tuning budget in the specification. |
@@ -39,7 +39,7 @@ See [AGENTS.md](AGENTS.md) for the development rules. Instructions and Git ignor
 
 Tickets are tracked as local Markdown files, following the [issue-tracker conventions](docs/agents/issue-tracker.md) and [triage vocabulary](docs/agents/triage-labels.md).
 
-1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — tooling, private execution and approved evidence transfer are done; final missing-value decisions remain open.
+1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — complete, including private execution, approved evidence transfer and recorded missing-value conventions.
 2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — uses the reviewed evidence from Ticket 01.
 3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md).
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md).

@@ -1,6 +1,6 @@
 # Reviewed input-evidence summary
 
-APPROVED FOR RELEASE.
+APPROVED
 
 ## Documentary expectations
 
@@ -150,4 +150,4 @@ Distinct exact-string keys; blank and declared missing identifiers are excluded.
 
 Ticket 02 remains blocked until the user reviews and manually transfers the approved evidence and resolves input-contract questions. No benchmark was fitted.
 
-- Indicator blank handling remains unresolved.
+No automated contract blockers found; human release review is still required.
