@@ -1,0 +1,27 @@
+.venv/
+__pycache__/
+.pytest_cache/
+tests/.runs/
+.rehearsal/
+reports/
+private-results/
+*.csv
+*.dta
+*.sav
+*.sas7bdat
+*.parquet
+*.feather
+*.pkl
+*.pickle
+*.joblib
+config/reviewed-contract.json
+
+# Presenter work stays outside this source repository.
+private/
+data/
+real-data/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+
