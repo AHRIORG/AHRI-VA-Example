@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-The user confirmed the command-level testing seam. Implementation remains deferred at the user's prior request.
+The user confirmed the command-level testing seam. Ticket 01 tooling was authorized on 29 September 2026; later tickets remain deferred and depend on the private evidence handoff.
 
 ## Problem Statement
 

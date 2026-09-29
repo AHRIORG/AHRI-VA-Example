@@ -6,7 +6,7 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 ## Current status
 
-The repository contains the accepted design, input specifications, architectural decisions and five approved implementation tickets. **Implementation remains deferred.** There is no runnable benchmark, input-evidence wizard or test suite yet; `validate` and `benchmark` are planned commands.
+The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 now has a [private input-evidence wizard](docs/private-input-evidence.md), a Python inspector and invented-fixture tests. The user must run the wizard privately and transfer reviewed evidence to finish that ticket. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
 
 Start with the [benchmark specification](docs/issues/interva5-replication/spec.md). Actual private-file formats and conventions remain unresolved until the user verifies them in the separate analysis account and transfers a reviewed evidence summary.
 
@@ -45,7 +45,20 @@ Tickets are tracked as local Markdown files, following the [issue-tracker conven
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md).
 5. [Complete the random-forest comparison and benchmark report](docs/issues/interva5-replication/issues/05-random-forest-and-complete-report.md).
 
-Dependencies follow **01 → 02 → 03 → 04 → 05**. Creating the wizard alone does not complete Ticket 01: the reviewed evidence handoff must also occur. Ticket readiness does not override blockers or the instruction deferring implementation.
+Dependencies follow **01 → 02 → 03 → 04 → 05**. Creating the wizard alone does not complete Ticket 01: the reviewed evidence handoff must also occur. Ticket readiness does not override blockers or authorize later implementation.
+
+## Ticket 01 tooling
+
+The [execution guide](docs/private-input-evidence.md) covers prerequisites, all six stages, captured values and private review/transfer. Bash and Python 3.11+ are sufficient; the runtime uses only the Python standard library and works offline. The interactive wizard is for the human in the analysis account. Development checks use invented records only:
+
+```bash
+python3 -m unittest discover -s tests -v
+bash -n scripts/private-input-wizard.sh
+```
+
+The wizard template library is preserved unchanged from the `wizard` skill. No real-data execution or reviewed evidence is included in this source repository.
+
+An offline transfer archive can be built from the reviewed source with `python3 scripts/build_transfer_bundle.py --output dist/ahri-va-ticket01.tar.gz --revision <full-commit-sha>`. It uses an explicit source/documentation allowlist and includes `START-HERE.md`, invented tests and checksums. Build only from the reviewed committed files so the recorded revision identifies its contents. The archive assumes the user's confirmed destination runtime: the same Mac with Bash and Python 3.11+.
 
 ## Supporting documentation
 

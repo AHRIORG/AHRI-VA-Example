@@ -1,6 +1,7 @@
 # 01 — HITL: Create and run a private input-evidence wizard
 
 Status: ready-for-human
+Progress: claimed
 
 **Parent:** [Adult InterVA5 first-cause replication benchmark](../spec.md)
 
@@ -19,15 +20,23 @@ Status: ready-for-human
 
 ## Acceptance criteria
 
-- [ ] Read and use the `$wizard` skill when implementing. Preserve its template library and author only the task stages. Provide focused instructions, progress estimates, confirmation gates and a closing summary; make the wizard executable.
-- [ ] Before authoring, make each stage's captured values, evidence sources, destinations and private/releasable classification concrete with the user. Provide verifiable commands or manual instructions; do not invent an unknown native format, interface or tool capability.
-- [ ] Bash orchestrates the human procedure; all data-inspection computations run in Python. The user alone executes real-data commands in the analysis account; no agent runs there. The agent never opens private inputs or private evidence artifacts.
-- [ ] Keep private working evidence separate from the proposed release summary. Do not automatically transfer, commit or upload evidence. Exclude participant values, record excerpts, private paths, raw logs, private contracts/reports, individual predictions and fitted models from the released material. Include only user-approved format/schema facts, conventions and aggregate checks needed by later tickets.
-- [ ] Preserve the distinction between confirmed facts, documentary expectations, automated observations and unresolved assumptions. Unexpected codes or conflicts remain actionable findings rather than being silently repaired. No benchmark fitting is required for this ticket.
-- [ ] Run Bash syntax validation and ShellCheck when available; statically trace captured values to their intended destinations. Verify Python inspection and summary-generation behaviour with invented fixtures only, including malformed/unsupported inputs and omission of record values from the proposed summary. Do not run the interactive wizard end to end as an agent.
+- [x] Read and use the `$wizard` skill when implementing. Preserve its template library and author only the task stages. Provide focused instructions, progress estimates, confirmation gates and a closing summary; make the wizard executable.
+- [x] Before authoring, make each stage's captured values, evidence sources, destinations and private/releasable classification concrete with the user. Provide verifiable commands or manual instructions; do not invent an unknown native format, interface or tool capability.
+- [x] Bash orchestrates the human procedure; all data-inspection computations run in Python. The user alone executes real-data commands in the analysis account; no agent runs there. The agent never opens private inputs or private evidence artifacts.
+- [x] Keep private working evidence separate from the proposed release summary. Do not automatically transfer, commit or upload evidence. Exclude participant values, record excerpts, private paths, raw logs, private contracts/reports, individual predictions and fitted models from the released material. Include only user-approved format/schema facts, conventions and aggregate checks needed by later tickets.
+- [x] Preserve the distinction between confirmed facts, documentary expectations, automated observations and unresolved assumptions. Unexpected codes or conflicts remain actionable findings rather than being silently repaired. No benchmark fitting is required for this ticket.
+- [x] Run Bash syntax validation and ShellCheck when available; statically trace captured values to their intended destinations. Verify Python inspection and summary-generation behaviour with invented fixtures only, including malformed/unsupported inputs and omission of record values from the proposed summary. Do not run the interactive wizard end to end as an agent.
 - [ ] Supply clear private-execution, review and transfer instructions. The user runs the wizard, reviews the summary and transfers the approved evidence into this repository. Link that evidence from this ticket when completing it; script creation alone does not complete the ticket.
 - [ ] The evidence gives Ticket 02 a reviewed basis for its input contract and preparation guidance. Any unresolved matter that prevents implementing that contract remains an explicit blocker requiring a user decision; no actual-input fact is inferred from invented-fixture tests.
 
 ## Execution boundary
 
-This is a human-in-the-loop ticket with agent-authored tooling. Publication does not authorize implementation: implementation remains deferred. Source, documentation and invented fixtures are the only development inputs; instructions and Git ignores do not enforce access controls.
+This is a human-in-the-loop ticket with agent-authored tooling. The user authorized Ticket 01 implementation on 29 September 2026 and confirmed the six-stage capture plan and Python command testing boundary. Source, documentation and invented fixtures are the only development inputs; instructions and Git ignores do not enforce access controls. Human execution, release review and evidence transfer remain required for completion.
+
+## Comments
+
+29 September 2026: Agent-authored tooling is available in the [execution guide](../../../private-input-evidence.md), [wizard](../../../../scripts/private-input-wizard.sh) and [Python inspector](../../../../scripts/input_evidence.py). The guide records the user-confirmed capture/destination plan. The wizard library is byte-identical to the supplied template above the stages marker. Bash syntax, Python typechecking and command tests use invented fixtures only; ShellCheck was not installed. The interactive wizard was not run by an agent.
+
+The user also requested an offline transfer archive and confirmed the destination is the same Mac with Bash and Python 3.11+ already available. The [bundle builder](../../../../scripts/build_transfer_bundle.py) packages an explicit allowlist of source, documentation and invented tests with checksums; no runtime packages or network access are needed.
+
+**Human handoff pending:** no private evidence has been collected or transferred. After private execution and review, the user may transfer `../reviewed-input-evidence.md`; add its link here only when it exists and has been approved. Leave this ticket unresolved and Ticket 02 blocked until the handoff and necessary input-contract decisions are complete. Script creation and invented-fixture tests establish no actual-input facts.
