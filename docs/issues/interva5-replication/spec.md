@@ -2,7 +2,7 @@
 
 Status: ready-for-agent
 
-The user confirmed the command-level testing seam. Ticket 01 tooling was authorized on 29 September 2026; later tickets remain deferred and depend on the private evidence handoff.
+The user confirmed the command-level testing seam. Ticket 01 tooling was authorized on 29 September 2026, and the [approved evidence summary](reviewed-input-evidence.md) has been transferred. Later tickets remain deferred; the [handoff review](issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026) records the remaining missing-value decisions.
 
 ## Problem Statement
 

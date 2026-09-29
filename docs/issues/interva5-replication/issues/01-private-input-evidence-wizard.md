@@ -5,7 +5,7 @@ Progress: claimed
 
 **Parent:** [Adult InterVA5 first-cause replication benchmark](../spec.md)
 
-**Blocked by:** None — can start when implementation is authorized.
+**Blocked by:** Final missing-value decisions listed in the [handoff review](#handoff-review--29-september-2026).
 
 **What to build:** An interactive Bash wizard, created using the `$wizard` skill, that helps the user establish the actual input files' formats and the characteristics needed for the adult InterVA5 first-cause replication benchmark. The agent develops and verifies the tooling using invented teaching fixtures. The user runs it in the separate private analysis account, reviews its evidence summary and transfers only the approved summary into this repository for subsequent tickets.
 
@@ -26,7 +26,7 @@ Progress: claimed
 - [x] Keep private working evidence separate from the proposed release summary. Do not automatically transfer, commit or upload evidence. Exclude participant values, record excerpts, private paths, raw logs, private contracts/reports, individual predictions and fitted models from the released material. Include only user-approved format/schema facts, conventions and aggregate checks needed by later tickets.
 - [x] Preserve the distinction between confirmed facts, documentary expectations, automated observations and unresolved assumptions. Unexpected codes or conflicts remain actionable findings rather than being silently repaired. No benchmark fitting is required for this ticket.
 - [x] Run Bash syntax validation and ShellCheck when available; statically trace captured values to their intended destinations. Verify Python inspection and summary-generation behaviour with invented fixtures only, including malformed/unsupported inputs and omission of record values from the proposed summary. Do not run the interactive wizard end to end as an agent.
-- [ ] Supply clear private-execution, review and transfer instructions. The user runs the wizard, reviews the summary and transfers the approved evidence into this repository. Link that evidence from this ticket when completing it; script creation alone does not complete the ticket.
+- [x] Supply clear private-execution, review and transfer instructions. The user runs the wizard, reviews the summary and transfers the approved evidence into this repository. Link that evidence from this ticket when completing it; script creation alone does not complete the ticket.
 - [ ] The evidence gives Ticket 02 a reviewed basis for its input contract and preparation guidance. Any unresolved matter that prevents implementing that contract remains an explicit blocker requiring a user decision; no actual-input fact is inferred from invented-fixture tests.
 
 ## Execution boundary
@@ -41,6 +41,21 @@ The user also requested an offline transfer archive and confirmed the destinatio
 
 Code review compared this work with `bc71f02335e1326b59d16d1d0f775c7fa08e4e61` on separate standards and spec axes. The standards review found duplicated categorical choices (P3 heuristic), now shared. The spec review found detailed blocker messages bypassed section opt-outs (P2), now gated by the same release choices and covered by an invented-command regression test. No actual-input conclusions were drawn.
 
-**Human handoff pending:** no private evidence has been collected or transferred. After private execution and review, the user may transfer `../reviewed-input-evidence.md`; add its link here only when it exists and has been approved. Leave this ticket unresolved and Ticket 02 blocked until the handoff and necessary input-contract decisions are complete. Script creation and invented-fixture tests establish no actual-input facts.
+**Human handoff received:** the user privately ran the tooling and transferred the [approved evidence summary](../reviewed-input-evidence.md). The final input-contract decisions below remain open, so this ticket remains claimed and Ticket 02 remains blocked. Actual-input facts below come from the user's release, not from invented-fixture tests.
 
 Stage 6 follow-up: the user reported the generic `Invalid categorical evidence; rerun inspection.` message. Invented command fixtures reproduced it for both invalid review statuses and invalid generated observation categories; the private trigger was not inspected. Diagnostics now name only the known document/field and allowed choices, with recovery appropriate to that document. A review-status correction can be retried through `summary` without rerunning inspection or losing saved review work. The [guide](../../../private-input-evidence.md#recovering-a-stage-6-category-error) documents recovery.
+
+## Handoff review — 29 September 2026
+
+The user marked the summary `APPROVED FOR RELEASE`, transferred it as `candidate-summary.md`, and authorized checking, committing and pushing it. It is stored as [reviewed-input-evidence.md](../reviewed-input-evidence.md); only the document title was changed. Its generated handoff wording reflects the state before transfer. This review records the current state.
+
+The released statements confirm v2 compatibility, preservation of original `IIntID` values, completed age at death, empty age/target cells as missing, the exact undetermined-assignment label `Undetermined`, and two UTF-8 CSV inputs requiring no conversion. Both tables use comma delimiters, double quotes, doubled-quote escaping, no separate escape character and a first-record header. All documented fields are present, including the 353 indicators.
+
+The approved aggregates are internally consistent: 26,168 matched identifiers plus 1,558 deaths-only identifiers equal 27,726 deaths records. The indicator-state counts total 9,237,304 cells, equal to 26,168 records × 353 indicators. No duplicate identifiers, conflicting targets, indicator blanks or unexpected indicator codes were reported. These checks used only the released summary; no participant inputs or private working evidence were opened.
+
+Two decisions remain required before finalizing Ticket 02's input contract:
+
+1. **Indicator blanks:** select rejection or an explicit mapping to the missing/inapplicable indicator response. The summary expressly leaves this unresolved. Zero observed blanks do not establish the policy for a later input.
+2. **Complete missing-token lists:** confirm the exact, exhaustive missing tokens for `IIntID`, `Age_in_years` and `cause1_InterVA`. The release confirms empty age/target cells mean missing, but does not say these are the only tokens or specify the identifier convention. Zero declared-missing counts cannot establish those lists. Preserve `Undetermined` as a target class, distinct from an absent label.
+
+The user will resume later with Ticket 02. No Ticket 02 implementation was started. Keep the remaining acceptance item open until these decisions are recorded; do not infer them from the observed counts.

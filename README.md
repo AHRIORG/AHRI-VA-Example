@@ -6,9 +6,9 @@ The research outcome is **replication agreement**: how closely simple classifier
 
 ## Current status
 
-The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 now has a [private input-evidence wizard](docs/private-input-evidence.md), a Python inspector and invented-fixture tests. The user must run the wizard privately and transfer reviewed evidence to finish that ticket. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
+The repository contains the accepted design, input specifications, architectural decisions and five implementation tickets. Ticket 01 has a [private input-evidence wizard](docs/private-input-evidence.md), a Python inspector and invented-fixture tests. The user has run the wizard privately and transferred the [approved evidence summary](docs/issues/interva5-replication/reviewed-input-evidence.md). Final missing-value decisions remain open. `validate` and `benchmark` remain planned commands; Tickets 02–05 are not implemented.
 
-Start with the [benchmark specification](docs/issues/interva5-replication/spec.md). Actual private-file formats and conventions remain unresolved until the user verifies them in the separate analysis account and transfers a reviewed evidence summary.
+Start with the [benchmark specification](docs/issues/interva5-replication/spec.md) and [handoff review](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md#handoff-review--29-september-2026). The user confirmed the input formats and key meanings. Indicator-blank handling and exhaustive missing-token lists still require decisions before Ticket 02's input contract is finalized.
 
 ## Accepted benchmark design
 
@@ -39,7 +39,7 @@ See [AGENTS.md](AGENTS.md) for the development rules. Instructions and Git ignor
 
 Tickets are tracked as local Markdown files, following the [issue-tracker conventions](docs/agents/issue-tracker.md) and [triage vocabulary](docs/agents/triage-labels.md).
 
-1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — agent-authored tooling followed by human execution, review and evidence transfer. This ticket requires human completion.
+1. [HITL: Create and run a private input-evidence wizard](docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md) — tooling, private execution and approved evidence transfer are done; final missing-value decisions remain open.
 2. [Validate inputs and identify eligible labelled adults](docs/issues/interva5-replication/issues/02-validate-inputs-and-adult-eligibility.md) — uses the reviewed evidence from Ticket 01.
 3. [Run a baseline benchmark with population and partition checks](docs/issues/interva5-replication/issues/03-baseline-and-partition-checks.md).
 4. [Add training-only logistic-regression selection](docs/issues/interva5-replication/issues/04-logistic-regression-selection.md).
@@ -56,7 +56,7 @@ python3 -m unittest discover -s tests -v
 bash -n scripts/private-input-wizard.sh
 ```
 
-The wizard template library is preserved unchanged from the `wizard` skill. No real-data execution or reviewed evidence is included in this source repository.
+The wizard template library is preserved unchanged from the `wizard` skill. The repository includes the user-approved evidence summary. Participant inputs and private working evidence remain outside this account.
 
 An offline transfer archive can be built from the reviewed source with `python3 scripts/build_transfer_bundle.py --output dist/ahri-va-ticket01.tar.gz --revision <full-commit-sha>`. It uses an explicit source/documentation allowlist and includes `START-HERE.md`, invented tests and checksums. Build only from the reviewed committed files so the recorded revision identifies its contents. The archive assumes the user's confirmed destination runtime: the same Mac with Bash and Python 3.11+.
 

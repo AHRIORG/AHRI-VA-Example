@@ -6,6 +6,8 @@ Status: ready-for-agent
 
 **Blocked by:** [01 — HITL: Create and run a private input-evidence wizard](01-private-input-evidence-wizard.md), including the user's transfer of reviewed evidence and resolution of input-contract blockers.
 
+**Reviewed evidence received:** [Approved input-evidence summary](../reviewed-input-evidence.md). The [Ticket 01 handoff review](01-private-input-evidence-wizard.md#handoff-review--29-september-2026) records the two remaining decisions: indicator-blank handling and exhaustive missing-token lists for identifiers, ages and targets. Resolve those with the user when resuming; do not infer them from zero observed counts. The user deferred Ticket 02 implementation to a later session.
+
 **What to build:** A usable Python `validate` command that accepts the agreed two UTF-8 CSV inputs plus explicit configuration, checks their integrity and reports how many records have an unambiguous link, adult eligibility and a usable InterVA5 first-cause label. The configuration template and preparation guidance use Ticket 01's reviewed evidence; invented examples demonstrate the complete command without accessing participant records.
 
 ## Acceptance criteria
