@@ -1,4 +1,4 @@
-"""Public commands: aggregate validation JSON or the baseline Markdown report."""
+"""Public commands: aggregate validation JSON or a benchmark Markdown report."""
 
 import argparse
 from collections.abc import Sequence
@@ -36,11 +36,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         errors omit record values, with aggregate class counts where available.
         No output files are created by either command.
     """
-    parser = _Parser(prog="ahri-va", description="Validate and baseline adult InterVA5 replication.")
+    parser = _Parser(prog="ahri-va", description="Validate and benchmark adult InterVA5 replication.")
     commands = parser.add_subparsers(dest="command", required=True)
     for command, help_text in (
         ("validate", "Check inputs, adult eligibility, population and partitions without fitting."),
-        ("benchmark", "Check feasibility and print a baseline Markdown report."),
+        ("benchmark", "Print an intermediate baseline/logistic-regression Markdown comparison."),
     ):
         subcommand = commands.add_parser(command, help=help_text)
         subcommand.add_argument("--deaths", type=Path, required=True)
@@ -65,11 +65,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         summary["benchmark_feasibility"] = "feasible"
         if args.command == "benchmark":
             from ahri_va.baseline import evaluate_baseline
-            from ahri_va.report import baseline_report
+            from ahri_va.logistic import evaluate_logistic
+            from ahri_va.report import comparison_report
 
             summary.pop("models_fitted")
             result = evaluate_baseline(population, plan)
-            report = baseline_report(eligible, population, plan, result)
+            logistic = evaluate_logistic(population, plan)
+            report = comparison_report(eligible, population, plan, result, logistic)
     except ValidationError as error:
         failure: dict[str, object] = {"status": "failed", "errors": str(error).splitlines()}
         if summary:

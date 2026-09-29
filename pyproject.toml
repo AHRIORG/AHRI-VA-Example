@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ahri-va"
-version = "0.3.0"
-description = "Validate and baseline the adult InterVA5 replication benchmark"
+version = "0.4.0"
+description = "Validate and compare baseline and logistic adult InterVA5 replication"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

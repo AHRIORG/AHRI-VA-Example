@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+import warnings
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -17,6 +18,19 @@ sys.path.insert(0, str(ROOT / "src"))
 from ahri_va.cli import main
 
 PREDICTORS = json.loads((ROOT / "scripts/documented-schema.json").read_text())["predictors"]
+
+
+def _predict_invented_a(model, features):
+    return ["Invented A"] * features.shape[0]
+
+
+def _encoded_row_numbers(features):
+    return tuple(sum(1 << bit for bit, cell in enumerate(row[:16]) if cell == "y")
+                 for row in features)
+
+
+def _selection_section(report):
+    return report.split("## Logistic-regression selection", 1)[1].split("## Per-cause", 1)[0]
 
 
 class BenchmarkCommand(unittest.TestCase):
@@ -129,7 +143,7 @@ class BenchmarkCommand(unittest.TestCase):
         before = {path.name: path.read_bytes() for path in self.work.iterdir()}
         report = self.command("benchmark")
         self.assertEqual(report, self.command("benchmark"))
-        self.assertIn("Baseline milestone", report)
+        self.assertIn("Intermediate comparison", report)
         self.assertIn("Ticket 05", report)
         self.assertIn("eligible labelled adults in retained classes", report)
         self.assertIn("InterVA5 assignments", report)
@@ -141,6 +155,284 @@ class BenchmarkCommand(unittest.TestCase):
         for package in ("Python", "ahri-va", "scikit-learn", "numpy", "scipy", "joblib", "threadpoolctl"):
             self.assertIn(package, report)
         self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
+
+    def test_logistic_selection_reports_all_candidates_and_prefers_stronger_regularisation(self):
+        # Identical features make all settings tie. With three equally frequent
+        # causes, each fold recovers one of four records; the test recovers one
+        # of three. These are worked counts, not a high-score requirement.
+        self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5})
+        before = {path.name: path.read_bytes() for path in self.work.iterdir()}
+        report = self.command("benchmark")
+        self.assertEqual(report, self.command("benchmark"))
+        self.assertIn("Intermediate comparison", report)
+        self.assertIn("Ticket 05", report)
+        self.assertIn("| Logistic regression | 25.00% | 33.33% | 0.1667 |", report)
+        for strength in ("0.1", "1", "10"):
+            self.assertIn(f"| {strength} | 25.00% |", report)
+        self.assertIn("Selected logistic-regression C: 0.1", report)
+        self.assertIn("no weighting or resampling", report)
+        self.assertIn("353", report)
+        self.assertIn("y", report)
+        self.assertIn("n", report)
+        self.assertIn("missing/inapplicable", report)
+        self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
+
+    def test_logistic_failed_fits_and_non_convergence_never_emit_partial_reports(self):
+        from sklearn.exceptions import ConvergenceWarning
+        from sklearn.linear_model import LogisticRegression
+
+        self.prepare({"Invented A": 5, "Invented B": 5})
+        before = {path.name: path.read_bytes() for path in self.work.iterdir()}
+        real_fit = LogisticRegression.fit
+        for fail_at in (1, 5, 10):  # First candidate, later candidate, final refit.
+            for failure in (ValueError, RuntimeError, FloatingPointError, ConvergenceWarning):
+                with self.subTest(fail_at=fail_at, failure=failure):
+                    calls = []
+
+                    def fail_fit(model, *args, **kwargs):
+                        calls.append(model.C)
+                        if len(calls) == fail_at:
+                            if failure is ConvergenceWarning:
+                                warnings.warn("INVENTED-private diagnostic", failure)
+                            else:
+                                raise failure("INVENTED-private diagnostic")
+                        return real_fit(model, *args, **kwargs)
+
+                    with patch.object(LogisticRegression, "fit", fail_fit):
+                        result = self.command("benchmark", expected=2)
+                    self.assertEqual(len(calls), fail_at)
+                    self.assertIn("benchmark incomplete", " ".join(result["errors"]))
+                    self.assertIn("logistic", " ".join(result["errors"]))
+                    if failure is ConvergenceWarning:
+                        self.assertIn("converge", " ".join(result["errors"]))
+        self.assertEqual(before, {path.name: path.read_bytes() for path in self.work.iterdir()})
+
+    def test_logistic_report_distinguishes_zero_recall_from_absent_support(self):
+        from sklearn.linear_model import LogisticRegression
+
+        self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5,
+                      "Invented rare": 4})
+        # A controlled estimator boundary gives a worked confusion pattern:
+        # one of three test labels recovered, F1(A)=1/2, macro F1=1/6.
+        with patch.object(LogisticRegression, "predict", _predict_invented_a):
+            report = unescape(self.command("benchmark"))
+        self.assertIn("| Logistic regression | 33.33% | 33.33% | 0.1667 |", report)
+        self.assertIn("Test support | Logistic-regression recall", report)
+        self.assertIn('| <code>"Invented A"</code> | 1 | 100.00% |', report)
+        self.assertIn('| <code>"Invented B"</code> | 1 | 0.00% |', report)
+        self.assertIn('| <code>"Undetermined"</code> | 1 | 0.00% |', report)
+        self.assertIn('| <code>"Invented rare"</code> | 0 | not estimable (excluded) |', report)
+        self.assertIn("eligible labelled adults in retained classes", report)
+
+    def test_logistic_budget_encoding_and_shared_partitions_are_training_only(self):
+        from sklearn import model_selection
+        from sklearn.dummy import DummyClassifier
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.pipeline import Pipeline
+        from sklearn.preprocessing import OneHotEncoder
+
+        self.prepare({"Invented A": 5, "Invented B": 6, "Undetermined": 7,
+                      "Invented rare": 4}, encode_rows=True)
+        splits, folds, baseline_fits, pipeline_fits, encoder_fits = [], [], [], [], []
+        baseline_tests, pipeline_tests, settings = [], [], []
+        real_split = model_selection.train_test_split
+        real_folds = model_selection.StratifiedKFold.split
+        real_baseline_fit, real_baseline_predict = DummyClassifier.fit, DummyClassifier.predict
+        real_pipeline_fit, real_pipeline_predict = Pipeline.fit, Pipeline.predict
+        real_encoder_fit, real_logistic_fit = OneHotEncoder.fit, LogisticRegression.fit
+
+        def observe_split(*args, **kwargs):
+            result = real_split(*args, **kwargs)
+            splits.append(result)
+            self.assertEqual(kwargs["random_state"], 42)
+            return result
+
+        def observe_folds(splitter, *args, **kwargs):
+            result = list(real_folds(splitter, *args, **kwargs))
+            folds.append(result)
+            return iter(result)
+
+        def observe_baseline_fit(model, features, labels, **kwargs):
+            baseline_fits.append(_encoded_row_numbers(features))
+            return real_baseline_fit(model, features, labels, **kwargs)
+
+        def observe_baseline_predict(model, features):
+            baseline_tests.append(_encoded_row_numbers(features))
+            return real_baseline_predict(model, features)
+
+        def observe_pipeline_fit(model, features, labels, **kwargs):
+            pipeline_fits.append(_encoded_row_numbers(features))
+            self.assertTrue(all(len(row) == 353 for row in features))
+            return real_pipeline_fit(model, features, labels, **kwargs)
+
+        def observe_pipeline_predict(model, features, **kwargs):
+            pipeline_tests.append(_encoded_row_numbers(features))
+            return real_pipeline_predict(model, features, **kwargs)
+
+        def observe_encoder_fit(encoder, features, labels=None):
+            encoder_fits.append(_encoded_row_numbers(features))
+            result = real_encoder_fit(encoder, features, labels)
+            self.assertEqual([tuple(states) for states in encoder.categories_],
+                             [("y", "n", "-")] * 353)
+            # Every category must activate its own column, including a category
+            # absent from training. Probe only this disposable fixture encoder.
+            probes = [[state] + ["n"] * 352 for state in ("y", "n", "-")]
+            encoded = encoder.transform(probes).toarray()
+            self.assertEqual(encoded.shape, (3, 1059))
+            self.assertEqual(encoded[:, :3].tolist(), [[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+            return result
+
+        def observe_logistic_fit(model, features, labels, sample_weight=None, **kwargs):
+            settings.append(model.C)
+            self.assertIsNone(model.class_weight)
+            self.assertIsNone(sample_weight)
+            self.assertEqual(model.random_state, 42)
+            self.assertEqual(model.solver, "lbfgs")
+            self.assertEqual(model.l1_ratio, 0)
+            return real_logistic_fit(model, features, labels, sample_weight=sample_weight, **kwargs)
+
+        with patch.object(LogisticRegression, "fit", side_effect=AssertionError("validate fitted")), patch.object(
+            OneHotEncoder, "fit", side_effect=AssertionError("validate fitted preprocessing")
+        ):
+            self.assertEqual(self.command()["models_fitted"], 0)
+        with patch.object(model_selection, "train_test_split", observe_split), patch.object(
+            model_selection.StratifiedKFold, "split", observe_folds
+        ), patch.object(DummyClassifier, "fit", observe_baseline_fit), patch.object(
+            DummyClassifier, "predict", observe_baseline_predict
+        ), patch.object(Pipeline, "fit", observe_pipeline_fit), patch.object(
+            Pipeline, "predict", observe_pipeline_predict
+        ), patch.object(OneHotEncoder, "fit", observe_encoder_fit), patch.object(
+            LogisticRegression, "fit", observe_logistic_fit
+        ):
+            report = self.command("benchmark")
+        self.assertEqual(len(splits), 1)
+        self.assertEqual(len(folds), 1)
+        self.assertEqual(len(pipeline_fits), 10)  # Three settings x three folds, one refit.
+        self.assertEqual(settings[:9], [0.1] * 3 + [1] * 3 + [10] * 3)
+        self.assertIn(f"Selected logistic-regression C: {settings[-1]:g}", report)
+        self.assertEqual(encoder_fits, pipeline_fits)
+        for offset in (0, 3, 6):
+            self.assertEqual(pipeline_fits[offset:offset + 3], baseline_fits[:3])
+            self.assertEqual(pipeline_tests[offset:offset + 3], baseline_tests[:3])
+        self.assertEqual(pipeline_fits[-1], baseline_fits[-1])
+        self.assertEqual(pipeline_tests[-1], baseline_tests[-1])
+        development, test = splits[0]
+        self.assertEqual(pipeline_fits[-1], tuple(development))
+        self.assertEqual(pipeline_tests[-1], tuple(test))
+        for seen in pipeline_fits:
+            self.assertEqual(len(seen), len(set(seen)))  # No oversampling.
+            self.assertFalse(set(seen) & set(test))
+            self.assertTrue(set(seen) <= set(range(18)))  # Rare class never fitted.
+        for seen, (training, validation) in zip(pipeline_fits[:3], folds[0], strict=True):
+            self.assertEqual(seen, tuple(development[int(i)] for i in training))
+            self.assertFalse(set(seen) & {development[int(i)] for i in validation})
+
+    def test_selection_uses_mean_fold_agreement_and_breaks_a_nondefault_tie(self):
+        from sklearn.linear_model import LogisticRegression
+
+        self.prepare({"Invented A": 5, "Invented B": 5}, encode_rows=True)
+        prediction_calls = []
+
+        def controlled_predictions(model, features):
+            # In this fixture, the first 16 indicators encode the row number.
+            encoded = features.toarray()
+            rows = [sum(1 << bit for bit in range(16) if row[3 * bit]) for row in encoded]
+            actual = ["Invented A" if number < 5 else "Invented B" for number in rows]
+            prediction_calls.append(model.C)
+            if len(prediction_calls) == 10:
+                correct = 0  # A poor holdout result must not trigger reselection.
+            elif model.C == 0.1:
+                correct = 1 if len(rows) == 3 else 0
+            else:
+                correct = 2 if len(rows) == 2 else 0
+            return [label if i < correct else ("Invented B" if label == "Invented A" else "Invented A")
+                    for i, label in enumerate(actual)]
+
+        with patch.object(LogisticRegression, "predict", controlled_predictions):
+            report = self.command("benchmark")
+        # Both settings get 2/8 pooled predictions right. Unweighted fold means
+        # are 22.22% versus 33.33%, so C=1 wins, tied with C=10.
+        self.assertIn("| 0.1 | 22.22% |", report)
+        self.assertIn("| 1 | 33.33% |", report)
+        self.assertIn("| 10 | 33.33% |", report)
+        self.assertIn("Selected logistic-regression C: 1;", report)
+        self.assertEqual(prediction_calls, [0.1] * 3 + [1] * 3 + [10] * 3 + [1])
+        self.assertIn("| Logistic regression | 33.33% | 0.00% | 0.0000 |", report)
+
+    def test_holdout_perturbations_cannot_change_fits_or_selection(self):
+        from sklearn import model_selection
+        from sklearn.linear_model import LogisticRegression
+
+        self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5}, encode_rows=True)
+        real_split, real_fit = model_selection.train_test_split, LogisticRegression.fit
+        holdout, fitted = [], []
+
+        def observe_split(*args, **kwargs):
+            development, test = real_split(*args, **kwargs)
+            holdout[:] = test
+            return development, test
+
+        def observe_fit(model, features, labels, **kwargs):
+            result = real_fit(model, features, labels, **kwargs)
+            fitted.append((model.C, features.toarray().tolist(), list(labels),
+                           model.coef_.tolist(), model.intercept_.tolist()))
+            return result
+
+        with patch.object(model_selection, "train_test_split", observe_split), patch.object(
+            LogisticRegression, "fit", observe_fit
+        ):
+            original = self.command("benchmark")
+        original_fits = fitted.copy()
+        with (self.work / "indicators.csv").open(newline="") as stream:
+            rows = list(csv.reader(stream))
+        for index in holdout:
+            # All three allowed categories change; neither IDs nor targets do.
+            rows[index + 1][1:] = [{"y": "n", "n": "-", "-": "y"}[cell]
+                                   for cell in rows[index + 1][1:]]
+        with (self.work / "indicators.csv").open("w", newline="") as stream:
+            csv.writer(stream).writerows(rows)
+        fitted.clear()
+        with patch.object(LogisticRegression, "fit", observe_fit):
+            perturbed = self.command("benchmark")
+        self.assertEqual(fitted, original_fits)
+        # Compare the entire development selection table, never holdout scores.
+        self.assertEqual(_selection_section(original), _selection_section(perturbed))
+
+    def test_excluded_fields_and_reviewed_blank_mapping_preserve_benchmark_results(self):
+        self.prepare({"Invented A": 5, "Invented B": 5, "Undetermined": 5}, encode_rows=True)
+        original = self.command("benchmark")
+        for role in ("deaths", "indicators"):
+            path = self.work / (role + ".csv")
+            with path.open(newline="") as stream:
+                rows = list(csv.reader(stream))
+            extra_fields = ["Questionnaire", "covid_test_r", "cause2_InterVA", "i_not_allowlisted"]
+            if role == "indicators":
+                extra_fields += ["cause1_InterVA", "Age_in_years"]
+            rows[0].extend(extra_fields)
+            for index, row in enumerate(rows[1:]):
+                row[0] = f"INVENTED-REKEYED-{index}"  # Same lossless linkage in both files.
+                if role == "deaths":
+                    row[1] = "99"  # Remains eligible, cannot become a predictor.
+                row.extend([f"INVENTED-EXCLUDED-{index}"] * len(extra_fields))
+            with path.open("w", newline="") as stream:
+                csv.writer(stream).writerows(rows)
+        self.assertEqual(original, self.command("benchmark"))
+        path = self.work / "indicators.csv"
+        with path.open(newline="") as stream:
+            rows = list(csv.reader(stream))
+        rows[1][353] = ""  # Originally missing/inapplicable, within the allowlist.
+        with path.open("w", newline="") as stream:
+            csv.writer(stream).writerows(rows)
+        self.assertIn("undeclared_values", " ".join(self.command("benchmark", expected=2)["errors"]))
+        config = json.loads(self.config.read_text())
+        config["indicator_blank_mapping"] = "missing_inapplicable"
+        config["indicator_blank_mapping_reviewed"] = True
+        self.config.write_text(json.dumps(config))
+        self.assertEqual(original, self.command("benchmark"))
+        rows[1][353] = "INVENTED-INVALID-STATE"
+        with path.open("w", newline="") as stream:
+            csv.writer(stream).writerows(rows)
+        self.assertIn("undeclared_values", " ".join(self.command("benchmark", expected=2)["errors"]))
 
     def test_exact_labels_are_safely_rendered_without_changing_the_experiment(self):
         self.prepare({' <b>Invented | cause</b> ': 5, 'Invented `cause` & B': 5,
