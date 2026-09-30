@@ -14,8 +14,8 @@ cp $HOME/AHRI-VA-Example/.gitignore .
 mkdir -p "$HOME/AHRI-VA-Try/docs/data_specs"
 cp -R "$HOME/AHRI-VA-Example/docs/data_specs/." "$HOME/AHRI-VA-Try/docs/data_specs/"
 # Create docs/agents
-mkdir -p "$HOME/AHRI-VA-Try/docs/data_specs"
-cp -R "$HOME/AHRI-VA-Example/docs/agents/python-standards.md" "$HOME/AHRI-VA-Try/docs/agents/"
+mkdir -p "$HOME/AHRI-VA-Live/docs/agents"
+cp -R "$HOME/AHRI-VA-Example/docs/agents/python-standards.md" "$HOME/AHRI-VA-Live/docs/agents/"
 
 # Create AGENTS.md
 cat > AGENTS.md << 'EOF'
@@ -25,21 +25,29 @@ For implementation coding standards review, read
 [Python coding standards](docs/agents/python-standards.md).
 EOF
 
+# Initialise git
 git init
+git add -A
 git status
-git commit -am "Initial commit"
+git commit -m "Initial commit"
 
+#Start prompt (Attached specification files) `Started 10:45`
 $grill-with-docs I want to develop a Python program that will read in verbal autopsy records and classify the cause of death based upon the verbal autopsy indicators in the input file. 
 Information on the input is in the attached files. This account is not allowed access to the actual data. 
 The analysis program we develop will ultimately run under the analysis account and will have access to the actual data. 
 Stop at the end of the grilling session, do not start developing the program yet.
 Disregard any work I have previously done on this topic.
 
+#Ran for 1:53
+
 ❓ Q1 — Intended use: What decisions should the cause-of-death results support?
 ➡️ My recommendation is population-level mortality research, with record-level estimates available for research review in the analysis account. Please flag if you also intend clinical, legal, or death-certification use.
 
+Q1 Agreed
 Q2 We are going to use a simple machine learning approach to try and replicate the first cause assigned by InterVA5 and documented in the file AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2
-Q3 All computations must run in Python, I can make use of appropriate libraries though.
+Q3 All computations must run in Python, You can make use of appropriate libraries though.
+
+#Ran for 1:32
 
 ❓ Q4 — Research claim: Is the initial objective an experiment on held-out records from 2000–2024, or a classifier intended to predict assignments for later, unlabelled records?
 ➡️ Start with a retrospective replication experiment. The intended generalisation determines how we should split training and evaluation records.
@@ -53,11 +61,13 @@ Q3 All computations must run in Python, I can make use of appropriate libraries 
 ➡️ Compare two standard learners against a baseline that always predicts the most frequent training label, with limited tuning. We can choose the learners once the predictor scope is settled.
 ❓ Q9 — Success priority: Should selecting the best model prioritise overall agreement, or give uncommon causes equal influence even when that reduces overall agreement?
 ➡️ Make overall exact-match agreement primary, while requiring macro-F1 and per-cause recall to expose poor performance on uncommon causes. Metric definitions
-Q4, Q5 Yes
+Q4, Q5 Agreed
 Q6 Adults 18+ only
 Q7 Yes
 Q8 Yes
 Q9 Yes
+
+# Ran for 1:53
 ❓ Q10 — Adult eligibility: May we use Age_in_years >= 18 from the deaths table, subject to private confirmation that it means completed age at death?
 ➡️ Yes. Exclude and count missing or invalid ages. The indicator bands cannot establish this cutoff because one spans ages 15–49.
 ❓ Q11 — Learners: Shall we compare regularised multinomial logistic regression and a random forest, alongside the agreed most-frequent-label baseline?
@@ -79,6 +89,8 @@ Q13 Yes, - means missing/inapplicable
 Q14, Q15 Yes
 Q16 Keep the output simple and easily interpretable
 Q17 Yes, you can use synthetic data
+
+#Ran for 1:51
 ❓ Q18 — Rare causes: If a cause has too few records for the agreed test split and cross-validation, should the program stop or automatically exclude/merge that cause?
 ➡️ Stop with a clear explanation and counts. Preserve the original labels and population definition. This may require you to revise the experiment after private review, but avoids silently changing what we evaluate.
 ❓ Q19 — Tuning budget: Shall we use three-fold cross-validation within the training portion, with this small, fixed comparison?
@@ -93,6 +105,7 @@ Q18 Exclude the cause
 Q19 Yes
 Q20 Yes
 
+#Ran for 2:47
 ❓ Q21 — Final exclusion rule and design confirmation: I propose excluding causes with fewer than five eligible labelled adult records, before splitting.
 ➡️ This supports the 80/20 split and three-fold cross-validation. Require at least two remaining causes and verify class coverage. Five is a feasibility minimum; per-cause results may still be uncertain.
 
@@ -100,9 +113,9 @@ Q21 yes, and conclude the grilling
 
 Commit all changes in the repository
 
-==========
+========== Duration 3:55
 
-$to-spec adr 0001 & 0002, use a local issue tracker in .md files under docs
+$to-spec adr 0001, use a local issue tracker in .md files under docs
 
 **Does testing through the public validate and benchmark commands, using invented CSV fixtures and checking diagnostics and reports, match your expectations?**
 
@@ -112,13 +125,16 @@ Yes, use this command boundary
 
 Yes, keep the defaults (recommended)
 
-=============
+============= Ran 4:14
 
-$to-tickets 'Adult InterVA5 first-cause replication benchmark', add a HITL ticket to verify input file format in the private analysis account
-Ticket 1 should include the creation of a wizard using the [$wizard](/Users/kobush/.agents/skills/wizard/SKILL.md) skill to gather evidence on the input file/s format and needed characteristics, which I will then transfer to this repository for use in subsequent tickets.
-Prepare an archive with all the prerequisites required that I can transfer to the private analysis account and execute there.
+[$to-tickets](/Users/kobush/.agents/skills/to-tickets/SKILL.md) Issue 0001. 
+Ticket 1 should be HITL to produce a wizard using the [$wizard](/Users/kobush/.agents/skills/wizard/SKILL.md) skill, 
+to verify the actual structure of the two input files. The wizard should not require any additional input information other than the paths to the two input files. 
+It should produce a report that contains the information you need to produce the rest of the code. 
+The user should review the file in the private analysis environment to make sure it contains no sensitive information. 
+On confirmation the report will be transferred to this environment (indicate where) for use in the remaining tickets.
 
-Approve tickets
+Approve tickets and commit changes
 
 Published all five tickets:
 1. [HITL input-evidence wizard](/Users/kobush/AHRI-VA-Example/docs/issues/interva5-replication/issues/01-private-input-evidence-wizard.md)
@@ -130,65 +146,85 @@ Dependencies follow 1 → 2 → 3 → 4 → 5. Ticket 1 requires your reviewed e
 
 Add a README to the repository
 
-=========
+=========  Students can take a 10 min break. ran 14:32
 
-$implement ticket 01
+[$implement](/Users/kobush/.agents/skills/implement/SKILL.md) ticket 01 and provide terminal commands to transfer the wizard to the analysis environment for execution. 
+To copy to the analysis environment - it is a separate user (ahrianalysis) on this same Mac. Use the Shared folder to transfer. Provide the commands to execute in the analysis environment, as well as the commands to copy the report back to you.
 
-To copy to ahrianalaysis:
-sudo cp /Users/kobush/AHRI-VA-Example/dist/ahri-va-ticket01.tar.gz /Users/ahrianalysis/Downloads/
-sudo chown ahrianalysis /Users/ahrianalysis/Downloads/ahri-va-ticket01.tar.gz
+Indicators: /Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv
+Deaths: /Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv
 
-extract
-mkdir -p /Users/ahrianalysis/AHRI-VA-Private/runs
-tar -xzf /Users/ahrianalysis/Downloads/ahri-va-ticket01.tar.gz -C /Users/ahrianalysis/AHRI-VA-Private/runs
 
-cd runs/ahri-va-ticket01
+reviewed_report="$HOME/Library/Application Support/AHRI-VA-Live/input-audit/run-cy3vflr6/input-structure-report.json"
 
-python3 -m unittest discover -s tests -v
-bash -n scripts/private-input-wizard.sh
+expected=$(shasum -a 256 "$reviewed_report") &&
+return_dir=$(mktemp -d /Users/Shared/ahri-va-ticket01-return.XXXXXX) &&
+cp "$reviewed_report" "$return_dir/input-structure-report.json" &&
+copied=$(shasum -a 256 "$return_dir/input-structure-report.json") &&
+[ "${expected%% *}" = "${copied%% *}" ] &&
+chmod 644 "$return_dir/input-structure-report.json" &&
+chmod 755 "$return_dir" &&
+printf 'Return folder: %s\n' "$return_dir"
 
-bash scripts/private-input-wizard.sh /Users/ahrianalysis/AHRI-VA-Private/input-evidence
+/Users/Shared/ahri-va-ticket01-return.FxTJQA
 
-=========
+return_dir='/Users/Shared/ahri-va-ticket01-return.FxTJQA'
+destination=/Users/kobush/AHRI-VA-Live/.scratch/learn-interva-first-cause/input-audit
+
+mkdir -p "$destination" &&
+cp "$return_dir/input-structure-report.json" "$destination/input-structure-report.json" &&
+chmod 600 "$destination/input-structure-report.json"
+
+========= ran 16:24
 $implement ticket 02
 
-mkdir -p /Users/Shared/ahri-va-ticket02
+Give me the commands to transfer the wheel to Shared and from there to ahrianalysis. Give me the command to execute it there as well
 
-cp \
-  /Users/kobush/AHRI-VA-Example/dist/ahri_va-0.2.0-py3-none-any.whl \
-  /Users/kobush/AHRI-VA-Example/config/validation.example.json \
-  /Users/Shared/ahri-va-ticket02/
-
-chmod 755 /Users/Shared/ahri-va-ticket02
-chmod 644 \
-  /Users/Shared/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl \
-  /Users/Shared/ahri-va-ticket02/validation.example.json
 
 ### On ahrianalysis
-mkdir -p "$HOME/ahri-va-ticket02"
+umask 077
+mkdir -p ~/ahri-va-baseline
+cd ~/ahri-va-baseline
 
-cp \
-  /Users/Shared/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl \
-  /Users/Shared/ahri-va-ticket02/validation.example.json \
-  "$HOME/ahri-va-ticket02/"
+cp /Users/Shared/ahri_va-0.2.0-py3-none-any.whl .
 
-python3 -m venv "$HOME/ahri-va-ticket02/.venv"
+/opt/homebrew/bin/python3.14 --version
+/opt/homebrew/bin/python3.14 -m venv .venv
 
-"$HOME/ahri-va-ticket02/.venv/bin/python" -m pip install \
-  --no-index \
-  --no-deps \
-  "$HOME/ahri-va-ticket02/ahri_va-0.2.0-py3-none-any.whl"
+.venv/bin/python -m pip install --no-index --no-deps \
+  ./ahri_va-0.2.0-py3-none-any.whl
 
-"$HOME/ahri-va-ticket02/.venv/bin/ahri-va" validate --help
+.venv/bin/ahri-va --version
+
+# verify
+cd ~/ahri-va-baseline
+.venv/bin/ahri-va demo --output private-results/synthetic-demo
 
 # actual command to validate
-"$HOME/ahri-va-ticket02/.venv/bin/ahri-va" validate \
-  --deaths "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" \
-  --indicators "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
-  --config "$HOME/ahri-va-ticket02/validation.example.json"
+cd ~/ahri-va-baseline
+umask 077
+
+.venv/bin/ahri-va baseline \
+  "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
+  "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv"  \
+  --output private-results/baseline-001
 
 # remember to commit ticket 2 changes
 
+(
+  umask 077
+
+  mkdir -p "$HOME/ahri-va-results" &&
+  "$HOME/ahri-va-venv/bin/ahri-va" validate \
+    --deaths "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" \
+    --detailed "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
+    --output "$HOME/ahri-va-results/initial-validation"
+)
+"$HOME/ahri-va-venv/bin/ahri-va" validate \
+    --deaths "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.DEATHS-Cause-of-death-2000-2024.v2.csv" \
+    --detailed "/Users/ahrianalysis/AHRI-VA-Private/inputs/AHRI.HDSS.VA-detailed-input-data-2000-2024.v2.csv" \
+  --label-map "$HOME/ahri-va-results/reviewed-label-map-v1.json" \
+  --output "$HOME/ahri-va-results/reviewed-validation"
 ===========
 
 $implement ticket 03
